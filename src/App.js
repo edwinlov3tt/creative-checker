@@ -1,5 +1,9 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { Upload, FileText, Image, Video, Settings, Download, Check, X, AlertCircle, Trash2, Edit2, Save, Archive, Eye } from 'lucide-react';
+import { 
+  Upload, FileText, Image, Video, Settings, Download, Check, AlertCircle, 
+  Trash2, Edit2, Save, Archive, BarChart3, Zap, Palette, Target,
+  Clock, FileCheck, Sparkles, TrendingUp, Globe, Shield
+} from 'lucide-react';
 import JSZip from 'jszip';
 
 const CreativeChecker = () => {
@@ -499,175 +503,237 @@ const CreativeChecker = () => {
     };
 
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center space-x-2 flex-1">
-            {file.type.startsWith('image/') ? <Image className="w-5 h-5 text-blue-500" /> :
-             file.type.startsWith('video/') ? <Video className="w-5 h-5 text-purple-500" /> :
-             <FileText className="w-5 h-5 text-gray-500" />}
+      <div className="group bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-6">
+          <div className="flex items-center space-x-3 flex-1">
+            <div className={`p-3 rounded-xl ${
+              file.type.startsWith('image/') ? 'bg-blue-100 text-blue-600' :
+              file.type.startsWith('video/') ? 'bg-purple-100 text-purple-600' :
+              'bg-gray-100 text-gray-600'
+            }`}>
+              {file.type.startsWith('image/') ? <Image className="w-6 h-6" /> :
+               file.type.startsWith('video/') ? <Video className="w-6 h-6" /> :
+               <FileText className="w-6 h-6" />}
+            </div>
             
-            {file.isFromZip && <Archive className="w-4 h-4 text-orange-500" />}
-            
-            {isEditing ? (
-              <div className="flex items-center space-x-2 flex-1">
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
-                />
-                <button onClick={handleSaveName} className="p-1 text-green-600 hover:bg-green-50 rounded">
-                  <Save className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-2 flex-1">
-                <div className="flex-1">
-                  <span className="font-medium text-sm truncate block">{file.displayName}</span>
+            <div className="flex-1 min-w-0">
+              {isEditing ? (
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button onClick={handleSaveName} className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                    <Save className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <h4 className="font-semibold text-gray-900 truncate">{file.displayName}</h4>
+                    {file.isFromZip && (
+                      <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded-full flex items-center space-x-1">
+                        <Archive className="w-3 h-3" />
+                        <span>ZIP</span>
+                      </span>
+                    )}
+                  </div>
                   {file.isFromZip && (
-                    <span className="text-xs text-gray-500">
-                      extracted from {file.zipSource}
+                    <p className="text-xs text-gray-500 mt-1">
+                      Extracted from {file.zipSource}
                       {files.filter(f => f.zipSource === file.zipSource).length > 1 && 
-                        ` (${files.filter(f => f.zipSource === file.zipSource).length} files)`
+                        ` • ${files.filter(f => f.zipSource === file.zipSource).length} files total`
                       }
-                    </span>
+                    </p>
                   )}
                 </div>
-                <button onClick={() => setIsEditing(true)} className="p-1 text-gray-400 hover:text-gray-600">
-                  <Edit2 className="w-4 h-4" />
-                </button>
-              </div>
+              )}
+            </div>
+            
+            {!isEditing && (
+              <button 
+                onClick={() => setIsEditing(true)} 
+                className="opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
+              >
+                <Edit2 className="w-4 h-4" />
+              </button>
             )}
           </div>
           
-          <button onClick={() => removeFile(file.id)} className="p-1 text-red-400 hover:text-red-600">
+          <button 
+            onClick={() => removeFile(file.id)} 
+            className="opacity-0 group-hover:opacity-100 p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+          >
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-          <div>
-            <span className="text-gray-500">Dimensions:</span>
-            <span className="ml-1 font-mono">{file.dimensions.width}×{file.dimensions.height}</span>
+        {/* File Details */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="bg-gray-50 rounded-xl p-4">
+            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Dimensions</div>
+            <div className="text-lg font-bold text-gray-900 font-mono">{file.dimensions.width} × {file.dimensions.height}</div>
           </div>
-          <div>
-            <span className="text-gray-500">Size:</span>
-            <span className="ml-1">{(file.size / 1024).toFixed(1)} KB</span>
+          <div className="bg-gray-50 rounded-xl p-4">
+            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">File Size</div>
+            <div className="text-lg font-bold text-gray-900">{(file.size / 1024).toFixed(1)} KB</div>
           </div>
-          <div>
-            <span className="text-gray-500">Format:</span>
-            <span className="ml-1">{file.analysis.format}</span>
+          <div className="bg-gray-50 rounded-xl p-4">
+            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Format</div>
+            <div className="text-lg font-bold text-gray-900">{file.analysis.format}</div>
           </div>
-          <div>
-            <span className="text-gray-500">Orientation:</span>
-            <span className="ml-1">{file.analysis.orientation}</span>
+          <div className="bg-gray-50 rounded-xl p-4">
+            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Orientation</div>
+            <div className="text-lg font-bold text-gray-900 capitalize">{file.analysis.orientation}</div>
           </div>
         </div>
 
-        {/* Spec Check Results */}
-        <div className="mb-4">
-          <h4 className="font-medium text-sm mb-2">Spec Compliance:</h4>
-          <div className="text-sm">
-            <div className="mb-1">
-              <span className="text-gray-500">Category:</span>
-              <span className={`ml-1 px-2 py-1 rounded text-xs ${
-                file.specCheck.category === 'Custom' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
-              }`}>
-                {file.specCheck.category}
-              </span>
-            </div>
-            
-            {file.specCheck.matches.length > 0 ? (
-              <div className="space-y-1">
-                {file.specCheck.matches.map((match, idx) => (
-                  <div key={idx} className="flex items-center text-green-600 text-sm">
-                    <Check className="w-4 h-4 mr-1" />
-                    {match}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex items-center text-orange-600 text-sm">
-                <AlertCircle className="w-4 h-4 mr-1" />
-                No standard specs matched
-              </div>
-            )}
-            
-            {file.specCheck.warnings.length > 0 && (
-              <div className="mt-2 space-y-1">
-                {file.specCheck.warnings.map((warning, idx) => (
-                  <div key={idx} className="flex items-center text-orange-600 text-sm">
-                    <AlertCircle className="w-4 h-4 mr-1" />
-                    {warning}
-                  </div>
-                ))}
-              </div>
-            )}
+        {/* Spec Compliance */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-lg font-semibold text-gray-900">Specification Compliance</h4>
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+              file.specCheck.category === 'Custom' 
+                ? 'bg-orange-100 text-orange-800' 
+                : 'bg-blue-100 text-blue-800'
+            }`}>
+              {file.specCheck.category}
+            </span>
           </div>
+          
+          {file.specCheck.matches.length > 0 ? (
+            <div className="space-y-3 mb-4">
+              {file.specCheck.matches.map((match, idx) => (
+                <div key={idx} className="flex items-center p-3 bg-green-50 border border-green-200 rounded-xl">
+                  <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center mr-3">
+                    <Check className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="font-medium text-green-800">{match}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center p-3 bg-orange-50 border border-orange-200 rounded-xl mb-4">
+              <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center mr-3">
+                <AlertCircle className="w-4 h-4 text-white" />
+              </div>
+              <span className="font-medium text-orange-800">No standard specifications matched</span>
+            </div>
+          )}
+          
+          {file.specCheck.warnings.length > 0 && (
+            <div className="space-y-2">
+              {file.specCheck.warnings.map((warning, idx) => (
+                <div key={idx} className="flex items-start p-3 bg-yellow-50 border border-yellow-200 rounded-xl">
+                  <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 mr-3 flex-shrink-0" />
+                  <span className="text-sm text-yellow-800">{warning}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* AI Analysis */}
-        <div className="mb-4">
-          <h4 className="font-medium text-sm mb-2">Creative Analysis:</h4>
-          <div className="text-sm text-gray-600 space-y-2">
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <span className="text-gray-500">Quality:</span>
-                <span className={`ml-1 ${
-                  file.analysis.quality === 'Excellent' ? 'text-green-600' :
-                  file.analysis.quality === 'Good' ? 'text-blue-600' :
-                  file.analysis.quality === 'Fair' ? 'text-orange-600' : 'text-red-600'
-                }`}>{file.analysis.quality}</span>
-              </div>
-              <div>
-                <span className="text-gray-500">Theme:</span>
-                <span className="ml-1">{file.analysis.theme}</span>
-              </div>
-              <div>
-                <span className="text-gray-500">Style:</span>
-                <span className="ml-1">{file.analysis.style}</span>
-              </div>
-              <div>
-                <span className="text-gray-500">Aspect Ratio:</span>
-                <span className="ml-1">{file.analysis.aspectRatio}</span>
-              </div>
+        <div>
+          <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mr-2">
+              <Sparkles className="w-4 h-4 text-white" />
             </div>
-            
+            AI-Powered Analysis
+          </h4>
+          
+          {/* Quality & Metrics */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4">
+              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Quality Score</div>
+              <div className={`text-xl font-bold ${
+                file.analysis.quality === 'Excellent' ? 'text-green-600' :
+                file.analysis.quality === 'Good' ? 'text-blue-600' :
+                file.analysis.quality === 'Fair' ? 'text-orange-600' : 'text-red-600'
+              }`}>{file.analysis.quality}</div>
+            </div>
+            <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4">
+              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Aspect Ratio</div>
+              <div className="text-xl font-bold text-gray-900 font-mono">{file.analysis.aspectRatio}</div>
+            </div>
+          </div>
+          
+          {/* Theme & Style */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
             <div>
-              <span className="text-gray-500">Platform Suggestions:</span>
-              <div className="mt-1">
-                {file.analysis.suggestedPlatforms.map((platform, idx) => (
-                  <span key={idx} className="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs mr-1 mb-1">
-                    {platform}
-                  </span>
+              <div className="text-sm font-medium text-gray-700 mb-2">Creative Theme</div>
+              <span className="inline-block px-3 py-2 bg-blue-100 text-blue-800 rounded-xl font-medium">
+                {file.analysis.theme}
+              </span>
+            </div>
+            <div>
+              <div className="text-sm font-medium text-gray-700 mb-2">Visual Style</div>
+              <span className="inline-block px-3 py-2 bg-purple-100 text-purple-800 rounded-xl font-medium">
+                {file.analysis.style}
+              </span>
+            </div>
+          </div>
+          
+          {/* Platform Suggestions */}
+          <div className="mb-6">
+            <div className="text-sm font-medium text-gray-700 mb-3">Recommended Platforms</div>
+            <div className="flex flex-wrap gap-2">
+              {file.analysis.suggestedPlatforms.map((platform, idx) => (
+                <span key={idx} className="px-3 py-2 bg-indigo-100 text-indigo-800 rounded-xl text-sm font-medium">
+                  {platform}
+                </span>
+              ))}
+            </div>
+          </div>
+          
+          {/* Creative Elements */}
+          <div className="mb-6">
+            <div className="text-sm font-medium text-gray-700 mb-3">Detected Elements</div>
+            <div className="flex flex-wrap gap-2">
+              <div className="flex items-center px-3 py-2 bg-gray-100 rounded-xl">
+                <div 
+                  className="w-4 h-4 rounded-full mr-2" 
+                  style={{ backgroundColor: file.analysis.dominantColors }}
+                ></div>
+                <span className="text-sm font-medium text-gray-700">Dominant Color</span>
+              </div>
+              {file.analysis.hasText && (
+                <span className="px-3 py-2 bg-green-100 text-green-800 rounded-xl text-sm font-medium">
+                  Text Present
+                </span>
+              )}
+              {file.analysis.hasCTA && (
+                <span className="px-3 py-2 bg-blue-100 text-blue-800 rounded-xl text-sm font-medium">
+                  Call-to-Action
+                </span>
+              )}
+              {file.analysis.hasLogo && (
+                <span className="px-3 py-2 bg-purple-100 text-purple-800 rounded-xl text-sm font-medium">
+                  Logo/Branding
+                </span>
+              )}
+            </div>
+          </div>
+          
+          {/* Recommendations */}
+          {file.analysis.recommendations.length > 0 && (
+            <div>
+              <div className="text-sm font-medium text-gray-700 mb-3">AI Recommendations</div>
+              <div className="space-y-2">
+                {file.analysis.recommendations.map((rec, idx) => (
+                  <div key={idx} className="flex items-start p-3 bg-blue-50 border border-blue-100 rounded-xl">
+                    <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                      <Sparkles className="w-3 h-3 text-white" />
+                    </div>
+                    <span className="text-sm text-blue-800">{rec}</span>
+                  </div>
                 ))}
               </div>
             </div>
-
-            <div className="flex items-center space-x-4 text-xs">
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded mr-1" style={{ backgroundColor: file.analysis.dominantColors }}></div>
-                Dominant Color
-              </div>
-              {file.analysis.hasText && <span className="bg-green-100 text-green-700 px-2 py-1 rounded">Has Text</span>}
-              {file.analysis.hasCTA && <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">Has CTA</span>}
-              {file.analysis.hasLogo && <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded">Has Logo</span>}
-            </div>
-
-            {file.analysis.recommendations.length > 0 && (
-              <div>
-                <span className="text-gray-500">Recommendations:</span>
-                <ul className="mt-1 space-y-1">
-                  {file.analysis.recommendations.map((rec, idx) => (
-                    <li key={idx} className="text-xs text-gray-600 flex items-start">
-                      <span className="w-1 h-1 bg-gray-400 rounded-full mr-2 mt-2 flex-shrink-0"></span>
-                      {rec}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </div>
     );
@@ -675,101 +741,244 @@ const CreativeChecker = () => {
 
   const SpecsSettings = () => {
     const [editingSpecs, setEditingSpecs] = useState(specs);
+    const [activeCategory, setActiveCategory] = useState('bannerAds');
 
     const saveSpecs = () => {
       setSpecs(editingSpecs);
       setActiveTab('upload');
     };
 
+    const categories = [
+      { id: 'bannerAds', name: 'Banner Ads', icon: '🏷️', color: 'blue' },
+      { id: 'social', name: 'Social Media', icon: '📱', color: 'purple' },
+      { id: 'video', name: 'Video Platforms', icon: '🎬', color: 'red' },
+      { id: 'spark', name: 'Spark Creative', icon: '⚡', color: 'yellow' },
+      { id: 'amped', name: 'AMPed Products', icon: '🚀', color: 'green' }
+    ];
+
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold">Specification Settings</h2>
-          <button 
-            onClick={saveSpecs}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
-          >
-            <Save className="w-4 h-4" />
-            <span>Save Changes</span>
-          </button>
+      <div className="space-y-8">
+        {/* Header */}
+        <div className="glass rounded-3xl p-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">Specification Management</h2>
+              <p className="text-gray-600">Configure validation rules and platform requirements for your creative assets</p>
+            </div>
+            <button 
+              onClick={saveSpecs}
+              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-semibold flex items-center space-x-2 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+            >
+              <Save className="w-5 h-5" />
+              <span>Save Changes</span>
+            </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white rounded-lg border p-4">
-            <h3 className="font-semibold mb-3">Banner Ads - Ignite</h3>
-            <div className="space-y-2">
-              <label className="block text-sm">
-                Allowed Sizes (comma-separated):
-                <textarea
-                  className="w-full mt-1 p-2 border border-gray-300 rounded text-sm"
-                  value={editingSpecs.bannerAds.ignite.sizes.join(', ')}
-                  onChange={(e) => {
-                    const sizes = e.target.value.split(',').map(s => s.trim()).filter(s => s);
-                    setEditingSpecs(prev => ({
-                      ...prev,
-                      bannerAds: {
-                        ...prev.bannerAds,
-                        ignite: { ...prev.bannerAds.ignite, sizes }
-                      }
-                    }));
-                  }}
-                />
-              </label>
-            </div>
-          </div>
+        {/* Category Navigation */}
+        <div className="flex flex-wrap gap-3 mb-8">
+          {categories.map(({ id, name, icon, color }) => (
+            <button
+              key={id}
+              onClick={() => setActiveCategory(id)}
+              className={`px-4 py-3 rounded-xl font-medium transition-all duration-200 flex items-center space-x-2 ${
+                activeCategory === id
+                  ? `bg-${color}-100 text-${color}-800 shadow-md`
+                  : 'bg-white/70 text-gray-600 hover:bg-white hover:shadow-md'
+              }`}
+            >
+              <span className="text-lg">{icon}</span>
+              <span>{name}</span>
+            </button>
+          ))}
+        </div>
 
-          <div className="bg-white rounded-lg border p-4">
-            <h3 className="font-semibold mb-3">Social Media - Facebook</h3>
-            <div className="space-y-2">
-              <label className="block text-sm">
-                Allowed Sizes:
-                <textarea
-                  className="w-full mt-1 p-2 border border-gray-300 rounded text-sm"
-                  value={editingSpecs.social.facebook.sizes.join(', ')}
-                  onChange={(e) => {
-                    const sizes = e.target.value.split(',').map(s => s.trim()).filter(s => s);
-                    setEditingSpecs(prev => ({
-                      ...prev,
-                      social: {
-                        ...prev.social,
-                        facebook: { ...prev.social.facebook, sizes }
-                      }
-                    }));
-                  }}
-                />
-              </label>
+        {/* Settings Content */}
+        <div className="space-y-6">
+          {activeCategory === 'bannerAds' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="glass rounded-2xl p-6">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <Settings className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900">Ignite Banner Specs</h3>
+                </div>
+                <div className="space-y-4">
+                  <label className="block">
+                    <span className="text-sm font-medium text-gray-700 mb-2 block">Allowed Dimensions</span>
+                    <textarea
+                      className="w-full p-3 border border-gray-300 rounded-xl text-sm font-mono bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      rows={3}
+                      value={editingSpecs.bannerAds.ignite.sizes.join(', ')}
+                      onChange={(e) => {
+                        const sizes = e.target.value.split(',').map(s => s.trim()).filter(s => s);
+                        setEditingSpecs(prev => ({
+                          ...prev,
+                          bannerAds: {
+                            ...prev.bannerAds,
+                            ignite: { ...prev.bannerAds.ignite, sizes }
+                          }
+                        }));
+                      }}
+                      placeholder="728x90, 300x250, 160x600..."
+                    />
+                  </label>
+                  <div className="text-xs text-gray-500">
+                    Enter dimensions in WIDTHxHEIGHT format, separated by commas
+                  </div>
+                </div>
+              </div>
+
+              <div className="glass rounded-2xl p-6">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                    <Settings className="w-5 h-5 text-green-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900">AMPed Banner Specs</h3>
+                </div>
+                <div className="space-y-4">
+                  <label className="block">
+                    <span className="text-sm font-medium text-gray-700 mb-2 block">Allowed Dimensions</span>
+                    <textarea
+                      className="w-full p-3 border border-gray-300 rounded-xl text-sm font-mono bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      rows={3}
+                      value={editingSpecs.bannerAds.amped.sizes.join(', ')}
+                      onChange={(e) => {
+                        const sizes = e.target.value.split(',').map(s => s.trim()).filter(s => s);
+                        setEditingSpecs(prev => ({
+                          ...prev,
+                          bannerAds: {
+                            ...prev.bannerAds,
+                            amped: { ...prev.bannerAds.amped, sizes }
+                          }
+                        }));
+                      }}
+                      placeholder="300x250, 728x90, 640x100..."
+                    />
+                  </label>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
+
+          {activeCategory === 'social' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {Object.entries(editingSpecs.social).map(([platform, config]) => (
+                <div key={platform} className="glass rounded-2xl p-6">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+                      <span className="text-lg">
+                        {platform === 'facebook' ? '👤' : 
+                         platform === 'instagram' ? '📷' :
+                         platform === 'tiktok' ? '🎵' :
+                         platform === 'linkedin' ? '💼' :
+                         platform === 'pinterest' ? '📌' : '📱'}
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 capitalize">{platform}</h3>
+                  </div>
+                  <div className="space-y-4">
+                    <label className="block">
+                      <span className="text-sm font-medium text-gray-700 mb-2 block">Allowed Sizes</span>
+                      <textarea
+                        className="w-full p-3 border border-gray-300 rounded-xl text-sm font-mono bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        rows={2}
+                        value={config.sizes.join(', ')}
+                        onChange={(e) => {
+                          const sizes = e.target.value.split(',').map(s => s.trim()).filter(s => s);
+                          setEditingSpecs(prev => ({
+                            ...prev,
+                            social: {
+                              ...prev.social,
+                              [platform]: { ...prev.social[platform], sizes }
+                            }
+                          }));
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Add similar sections for other categories as needed */}
+          {activeCategory !== 'bannerAds' && activeCategory !== 'social' && (
+            <div className="glass rounded-2xl p-12 text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Settings className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Configuration Panel</h3>
+              <p className="text-gray-600">
+                Advanced settings for {categories.find(c => c.id === activeCategory)?.name} will be available here.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Creative Specs Checker</h1>
-          <p className="text-gray-600">Upload creatives, extract ZIP files, check specifications, and analyze creative content</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Header */}
+      <div className="bg-white/80 backdrop-blur-sm border-b border-white/20 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center">
+                <Sparkles className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                  Creative Specs Validator
+                </h1>
+                <p className="text-sm text-gray-500">Professional creative asset validation & analysis</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 text-sm text-gray-500">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span>System Active</span>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 py-8">
 
         {/* Navigation Tabs */}
-        <div className="flex space-x-1 mb-6">
+        <div className="flex space-x-1 mb-8">
           {[
-            { id: 'upload', label: 'Upload & Check', icon: Upload },
-            { id: 'settings', label: 'Specs Settings', icon: Settings }
-          ].map(({ id, label, icon: Icon }) => (
+            { id: 'upload', label: 'Upload & Validate', icon: Upload, description: 'Upload and analyze creatives' },
+            { id: 'settings', label: 'Spec Management', icon: Settings, description: 'Configure validation rules' }
+          ].map(({ id, label, icon: Icon, description }) => (
             <button
               key={id}
               onClick={() => setActiveTab(id)}
-              className={`px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors ${
+              className={`group relative px-6 py-4 rounded-2xl flex items-center space-x-3 transition-all duration-200 ${
                 activeTab === id 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-white text-gray-600 hover:bg-gray-100'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25 scale-105' 
+                  : 'bg-white/70 text-gray-600 hover:bg-white hover:shadow-md backdrop-blur-sm'
               }`}
             >
-              <Icon className="w-4 h-4" />
-              <span>{label}</span>
+              <div className={`p-2 rounded-lg ${
+                activeTab === id 
+                  ? 'bg-white/20' 
+                  : 'bg-gray-100 group-hover:bg-gray-200'
+              }`}>
+                <Icon className="w-5 h-5" />
+              </div>
+              <div className="text-left">
+                <div className="font-semibold">{label}</div>
+                <div className={`text-xs ${
+                  activeTab === id 
+                    ? 'text-blue-100' 
+                    : 'text-gray-500'
+                }`}>{description}</div>
+              </div>
             </button>
           ))}
         </div>
@@ -777,106 +986,172 @@ const CreativeChecker = () => {
         {activeTab === 'settings' ? (
           <SpecsSettings />
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-8">
             {/* Upload Area */}
-            <div
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-white'
-              }`}
-              onDrop={handleDrop}
-              onDragOver={(e) => e.preventDefault()}
-              onDragEnter={() => setIsDragging(true)}
-              onDragLeave={() => setIsDragging(false)}
-            >
-              <Upload className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Drop files here or click to upload
-              </h3>
-              <p className="text-gray-600 mb-2">
-                Support for images (JPG, PNG, GIF, WebP), videos (MP4, MOV, WebM), and ZIP files
-              </p>
-              <p className="text-sm text-gray-500 mb-4">
-                <Archive className="w-4 h-4 inline mr-1" />
-                ZIP files will be automatically extracted (supports JPG, PNG, GIF, WebP, SVG, MP4, MOV, WebM, PDF)
-              </p>
-              
-              {isProcessing && processingStatus && (
-                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center justify-center space-x-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                    <span className="text-blue-700 text-sm">{processingStatus}</span>
-                  </div>
-                </div>
-              )}
-              
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={isProcessing}
+            <div className="relative">
+              <div
+                className={`relative border-2 border-dashed rounded-3xl p-12 text-center transition-all duration-300 ${
+                  isDragging 
+                    ? 'border-blue-400 bg-gradient-to-r from-blue-50 to-indigo-50 scale-102 shadow-xl' 
+                    : 'border-gray-300 bg-white/50 hover:bg-white/70 backdrop-blur-sm'
+                }`}
+                onDrop={handleDrop}
+                onDragOver={(e) => e.preventDefault()}
+                onDragEnter={() => setIsDragging(true)}
+                onDragLeave={() => setIsDragging(false)}
               >
-                {isProcessing ? 'Processing...' : 'Choose Files'}
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="image/*,video/*,.zip"
-                onChange={handleFileInput}
-                className="hidden"
-              />
+                <div className="max-w-md mx-auto">
+                  <div className={`w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center transition-all ${
+                    isDragging 
+                      ? 'bg-blue-500 shadow-lg' 
+                      : 'bg-gradient-to-r from-gray-100 to-gray-200'
+                  }`}>
+                    <Upload className={`w-10 h-10 ${
+                      isDragging ? 'text-white' : 'text-gray-500'
+                    }`} />
+                  </div>
+                  
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                    {isDragging ? 'Drop your files here!' : 'Upload Creative Assets'}
+                  </h3>
+                  
+                  <p className="text-gray-600 mb-6 leading-relaxed">
+                    Drop individual files or ZIP archives containing multiple creatives.
+                    <br />We support all major image and video formats.
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-4 mb-8 text-sm">
+                    <div className="flex items-center justify-center space-x-2 p-3 bg-gray-50 rounded-xl">
+                      <Image className="w-5 h-5 text-blue-600" />
+                      <span className="font-medium">Images</span>
+                      <span className="text-xs text-gray-500">JPG, PNG, GIF, WebP</span>
+                    </div>
+                    <div className="flex items-center justify-center space-x-2 p-3 bg-gray-50 rounded-xl">
+                      <Video className="w-5 h-5 text-purple-600" />
+                      <span className="font-medium">Videos</span>
+                      <span className="text-xs text-gray-500">MP4, MOV, WebM</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-center space-x-2 mb-6 p-4 bg-amber-50 rounded-xl border border-amber-200">
+                    <Archive className="w-5 h-5 text-amber-600" />
+                    <span className="text-sm font-medium text-amber-800">
+                      ZIP files are automatically extracted and processed
+                    </span>
+                  </div>
+                  
+                  {isProcessing && processingStatus && (
+                    <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                      <div className="flex items-center justify-center space-x-3">
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
+                        <span className="text-blue-700 font-medium">{processingStatus}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isProcessing}
+                    className={`px-8 py-4 rounded-xl font-semibold transition-all duration-200 ${
+                      isProcessing
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105'
+                    }`}
+                  >
+                    {isProcessing ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-400 border-t-transparent"></div>
+                        <span>Processing...</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-2">
+                        <Upload className="w-5 h-5" />
+                        <span>Choose Files to Upload</span>
+                      </div>
+                    )}
+                  </button>
+                  
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*,video/*,.zip"
+                    onChange={handleFileInput}
+                    className="hidden"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Summary Stats and Actions */}
             {files.length > 0 && (
-              <div className="bg-white rounded-lg border p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold">Analysis Summary</h3>
-                  <div className="flex space-x-2">
+              <div className="glass rounded-3xl p-8 shadow-xl">
+                <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">Analysis Overview</h3>
+                    <p className="text-gray-600">Comprehensive analysis of your creative assets</p>
+                  </div>
+                  <div className="flex space-x-3">
                     <button 
                       onClick={downloadCSV}
-                      className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center space-x-1 text-sm"
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
                     >
                       <Download className="w-4 h-4" />
-                      <span>CSV</span>
+                      <span>Export CSV</span>
                     </button>
                     <button 
                       onClick={downloadResults}
-                      className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center space-x-1 text-sm"
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
                     >
                       <Download className="w-4 h-4" />
-                      <span>JSON</span>
+                      <span>Export JSON</span>
                     </button>
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">{files.length}</div>
-                    <div className="text-sm text-gray-600">Total Files</div>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                  <div className="text-center p-6 bg-gradient-to-r from-blue-50 to-blue-100 rounded-2xl">
+                    <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+                      <FileText className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="text-3xl font-bold text-blue-600 mb-1">{files.length}</div>
+                    <div className="text-sm font-medium text-blue-800">Total Files</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">
+                  <div className="text-center p-6 bg-gradient-to-r from-green-50 to-green-100 rounded-2xl">
+                    <div className="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+                      <Check className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="text-3xl font-bold text-green-600 mb-1">
                       {files.filter(f => f.specCheck.matches.length > 0).length}
                     </div>
-                    <div className="text-sm text-gray-600">Spec Compliant</div>
+                    <div className="text-sm font-medium text-green-800">Spec Compliant</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-600">
+                  <div className="text-center p-6 bg-gradient-to-r from-purple-50 to-purple-100 rounded-2xl">
+                    <div className="w-12 h-12 bg-purple-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+                      <Image className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="text-3xl font-bold text-purple-600 mb-1">
                       {files.filter(f => f.type.startsWith('image/')).length}
                     </div>
-                    <div className="text-sm text-gray-600">Images</div>
+                    <div className="text-sm font-medium text-purple-800">Images</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-600">
+                  <div className="text-center p-6 bg-gradient-to-r from-orange-50 to-orange-100 rounded-2xl">
+                    <div className="w-12 h-12 bg-orange-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+                      <Video className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="text-3xl font-bold text-orange-600 mb-1">
                       {files.filter(f => f.type.startsWith('video/')).length}
                     </div>
-                    <div className="text-sm text-gray-600">Videos</div>
+                    <div className="text-sm font-medium text-orange-800">Videos</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-indigo-600">
+                  <div className="text-center p-6 bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-2xl">
+                    <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+                      <Archive className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="text-3xl font-bold text-indigo-600 mb-1">
                       {files.filter(f => f.isFromZip).length}
                     </div>
-                    <div className="text-sm text-gray-600">From ZIP</div>
+                    <div className="text-sm font-medium text-indigo-800">From Archives</div>
                   </div>
                 </div>
               </div>
@@ -892,10 +1167,24 @@ const CreativeChecker = () => {
             )}
 
             {files.length === 0 && !isProcessing && (
-              <div className="text-center py-12">
-                <FileText className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No files uploaded yet</h3>
-                <p className="text-gray-600">Upload some creatives or ZIP files to get started with spec checking and analysis.</p>
+              <div className="text-center py-16">
+                <div className="w-24 h-24 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <FileText className="w-12 h-12 text-gray-400" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">Ready to Validate Your Creatives</h3>
+                <p className="text-gray-600 max-w-md mx-auto leading-relaxed">
+                  Upload individual creative files or ZIP archives to get started with comprehensive 
+                  specification checking and AI-powered analysis.
+                </p>
+                <div className="mt-8 p-6 bg-blue-50 rounded-2xl border border-blue-100 max-w-md mx-auto">
+                  <div className="text-sm text-blue-800 font-medium mb-2">✨ What you'll get:</div>
+                  <ul className="text-sm text-blue-700 space-y-1">
+                    <li>• Platform compliance validation</li>
+                    <li>• AI-powered quality assessment</li>
+                    <li>• Automated dimension checking</li>
+                    <li>• Export-ready analysis reports</li>
+                  </ul>
+                </div>
               </div>
             )}
           </div>

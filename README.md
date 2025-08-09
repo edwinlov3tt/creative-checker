@@ -1,71 +1,160 @@
-# Getting Started with Create React App
+# Creative Specs Checker
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A powerful web application for validating creative assets against platform specifications, with automatic ZIP extraction and AI-powered analysis.
 
-## Available Scripts
+🔗 **Live Demo**: [https://creative-tester.edwin-6f1.workers.dev/](https://creative-tester.edwin-6f1.workers.dev/)
 
-In the project directory, you can run:
+## Features
 
-### `npm start`
+### 📁 File Processing
+- **Multi-format Support**: Upload images (JPG, PNG, GIF, WebP), videos (MP4, MOV, WebM), and ZIP archives
+- **ZIP Extraction**: Automatically extracts and processes creative assets from ZIP files
+- **Batch Processing**: Handle multiple files simultaneously with real-time progress updates
+- **Drag & Drop**: Intuitive drag-and-drop interface for file uploads
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### ✅ Specification Validation
+Validates creative dimensions and formats against major platforms:
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+#### Banner Ads
+- **Ignite**: 728x90, 300x250, 160x600, 300x600, 320x50
+- **AMPed**: 300x250, 728x90, 640x100, 320x50
+- File size limits enforced (200KB default, 150KB mobile)
 
-### `npm test`
+#### Social Media
+- **Facebook**: 1080x1080, 1080x1920
+- **Instagram**: Stories, Square posts
+- **TikTok**: 1080x1920, 720x1280
+- **LinkedIn**: 1080x1080
+- **Pinterest**: 1000x1500
+- **Snapchat**: 1080x1920
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+#### Video Platforms
+- **STV/Hulu/Netflix**: 1920x1080
+- **Live Sports**: 1920x1080
+- Duration and format validation
 
-### `npm run build`
+#### Specialty Formats
+- **Spark**: Landscape, Square, Portrait, Logo variations
+- **AMPed Products**: Content Sponsorship, Listen Live, Mobile Billboard, Takeover
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 🤖 AI-Powered Analysis
+- **Quality Assessment**: Rates creative quality (Excellent, Good, Fair, Needs Improvement)
+- **Theme Detection**: Identifies creative themes (Product Focus, Lifestyle, Brand Awareness, etc.)
+- **Style Classification**: Detects visual styles (Modern, Classic, Bold, Minimalist, Vibrant)
+- **Element Detection**: Identifies presence of text, CTAs, logos, and dominant colors
+- **Platform Suggestions**: Recommends optimal platforms based on dimensions
+- **Smart Recommendations**: Provides actionable improvement suggestions
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 📊 Export & Reporting
+- **JSON Export**: Detailed analysis results in JSON format
+- **CSV Export**: Spreadsheet-compatible format for bulk analysis
+- **Real-time Statistics**: Live summary of processed files, compliance rates, and file types
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### ⚙️ Customization
+- **Specs Settings**: Customize platform specifications to match your requirements
+- **Editable File Names**: Rename files within the interface
+- **Persistent Configuration**: Settings saved for future sessions
 
-### `npm run eject`
+## Getting Started
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Prerequisites
+- Node.js 14+ and npm
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Installation
+```bash
+# Clone the repository
+git clone https://github.com/edwinlov3tt/creative-checker.git
+cd creative-checker
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+# Install dependencies
+npm install
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+# Start development server
+npm start
+```
 
-## Learn More
+### Building for Production
+```bash
+# Create optimized production build
+npm run build
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+# The build folder contains static files ready for deployment
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Usage
 
-### Code Splitting
+1. **Upload Files**: Drag and drop files or click to browse
+2. **Automatic Processing**: Files are analyzed immediately upon upload
+3. **Review Results**: 
+   - Check spec compliance (green checkmarks for matches)
+   - Review AI analysis and recommendations
+   - View suggested platforms
+4. **Export Data**: Download results as JSON or CSV for reporting
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Technology Stack
 
-### Analyzing the Bundle Size
+- **React 19**: Latest React with hooks for state management
+- **Tailwind CSS**: Utility-first CSS for responsive design
+- **Lucide React**: Beautiful icon library
+- **JSZip**: Client-side ZIP file processing
+- **Create React App**: Zero-configuration build setup
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## Deployment
 
-### Making a Progressive Web App
+### Cloudflare Workers
+The application is deployed on Cloudflare Workers for global edge distribution:
+- Build the project: `npm run build`
+- Deploy the `build` folder contents to Cloudflare Workers
+- Access at your Workers URL
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+### Other Platforms
+The production build can be deployed to any static hosting service:
+- Vercel
+- Netlify
+- GitHub Pages
+- AWS S3 + CloudFront
 
-### Advanced Configuration
+## Project Structure
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+```
+creative-checker/
+├── public/              # Static assets
+├── src/
+│   ├── App.js          # Main CreativeChecker component
+│   ├── App.css         # Global styles
+│   └── index.js        # Application entry point
+├── build/              # Production build (generated)
+├── package.json        # Dependencies and scripts
+└── CLAUDE.md          # Claude Code documentation
+```
 
-### Deployment
+## Development
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+### Available Scripts
+- `npm start` - Start development server (localhost:3000)
+- `npm test` - Run tests in watch mode
+- `npm run build` - Create production build
+- `npm run eject` - Eject from Create React App (one-way operation)
 
-### `npm run build` fails to minify
+### Key Components
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
-# creative-checker
+#### CreativeChecker (src/App.js)
+The main component handling:
+- File upload and processing
+- ZIP extraction logic
+- Specification validation
+- AI analysis simulation
+- Export functionality
+- Settings management
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is available for use under standard open source terms.
+
+## Support
+
+For issues or questions, please open an issue on [GitHub](https://github.com/edwinlov3tt/creative-checker/issues).

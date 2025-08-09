@@ -254,6 +254,8 @@ const CreativeChecker = () => {
       return [];
     }
   };
+
+  // Process ZIP files using JSZip
   const processZipFile = async (zipFile) => {
     try {
       const zip = new JSZip();

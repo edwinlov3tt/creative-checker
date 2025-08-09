@@ -1,0 +1,61 @@
+App.js:336 Processing ZIP file: v4_Bismarck_BismarckLasik_84140.zip
+App.js:316 Successfully extracted 10 files from v4_Bismarck_BismarckLasik_84140.zip
+App.js:368 Error processing ZIP file v4_Bismarck_BismarckLasik_84140.zip: TypeError: d is not a constructor
+    at App.js:132:21
+    at new Promise (<anonymous>)
+    at O (App.js:130:12)
+    at I (App.js:347:38)
+    at async onChange (App.js:418:47)
+I @ App.js:368
+App.js:392 Error processing file v3b_Bismarck_BismarckLasik_728x90_84140.gif: TypeError: d is not a constructor
+    at App.js:132:21
+    at new Promise (<anonymous>)
+    at O (App.js:130:12)
+    at I (App.js:375:36)
+    at onChange (App.js:419:11)
+    at Object.Re (react-dom.production.min.js:54:317)
+    at Ue (react-dom.production.min.js:54:471)
+    at react-dom.production.min.js:55:35
+    at Fr (react-dom.production.min.js:105:68)
+    at Dr (react-dom.production.min.js:106:380)
+I @ App.js:392
+App.js:392 Error processing file v3b_Bismarck_BismarckLasik_300x600_84140.gif: TypeError: d is not a constructor
+    at App.js:132:21
+    at new Promise (<anonymous>)
+    at O (App.js:130:12)
+    at I (App.js:375:36)
+    at async onChange (App.js:418:47)
+I @ App.js:392
+App.js:392 Error processing file v3b_Bismarck_BismarckLasik_320x50_84140.gif: TypeError: d is not a constructor
+    at App.js:132:21
+    at new Promise (<anonymous>)
+    at O (App.js:130:12)
+    at I (App.js:375:36)
+    at async onChange (App.js:418:47)
+I @ App.js:392
+App.js:392 Error processing file v3b_Bismarck_BismarckLasik_160x600_84140.gif: TypeError: d is not a constructor
+    at App.js:132:21
+    at new Promise (<anonymous>)
+    at O (App.js:130:12)
+    at I (App.js:375:36)
+    at async onChange (App.js:418:47)
+I @ App.js:392
+App.js:392 Error processing file v3b_Bismarck_BismarckLasik_300x250_84140.gif: TypeError: d is not a constructor
+    at App.js:132:21
+    at new Promise (<anonymous>)
+    at O (App.js:130:12)
+    at I (App.js:375:36)
+    at async onChange (App.js:418:47)
+I @ App.js:392
+App.js:392 Error processing file v3b_Bismarck_BismarckLasik_300x600_84140.gif: TypeError: d is not a constructor
+    at App.js:132:21
+    at new Promise (<anonymous>)
+    at O (App.js:130:12)
+    at I (App.js:375:36)
+    at onChange (App.js:419:11)
+    at Object.Re (react-dom.production.min.js:54:317)
+    at Ue (react-dom.production.min.js:54:471)
+    at react-dom.production.min.js:55:35
+    at Fr (react-dom.production.min.js:105:68)
+    at Dr (react-dom.production.min.js:106:380)
+I @ App.js:392

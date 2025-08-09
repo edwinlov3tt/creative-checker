@@ -129,18 +129,26 @@ const CreativeChecker = () => {
   const getMediaDimensions = (file) => {
     return new Promise((resolve) => {
       if (file.type.startsWith('image/')) {
-        const img = new Image();
+        const img = document.createElement('img');
         img.onload = () => {
+          URL.revokeObjectURL(img.src); // Clean up object URL
           resolve({ width: img.width, height: img.height });
         };
-        img.onerror = () => resolve({ width: 0, height: 0 });
+        img.onerror = () => {
+          URL.revokeObjectURL(img.src); // Clean up object URL on error
+          resolve({ width: 0, height: 0 });
+        };
         img.src = URL.createObjectURL(file);
       } else if (file.type.startsWith('video/')) {
         const video = document.createElement('video');
         video.onloadedmetadata = () => {
+          URL.revokeObjectURL(video.src); // Clean up object URL
           resolve({ width: video.videoWidth, height: video.videoHeight });
         };
-        video.onerror = () => resolve({ width: 0, height: 0 });
+        video.onerror = () => {
+          URL.revokeObjectURL(video.src); // Clean up object URL on error
+          resolve({ width: 0, height: 0 });
+        };
         video.src = URL.createObjectURL(file);
       } else {
         resolve({ width: 0, height: 0 });

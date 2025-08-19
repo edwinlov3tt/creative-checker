@@ -481,7 +481,31 @@ const CreativeChecker = () => {
     const checkTacticMatch = () => {
       if (selectedTactic === 'all') return { matches: true, tactic: null };
       
-      const tacticMap = {
+      // Map tactic selection to what the spec checker actually returns
+      const tacticMatchMap = {
+        'ignite': ['Ignite Banner'],
+        'amped': ['AMPed Banner'],
+        'facebook': ['Facebook Social'],
+        'instagram': ['Instagram Social'],
+        'pinterest': ['Pinterest Social'],
+        'linkedin': ['Linkedin Social'],
+        'tiktok': ['Tiktok Social'],
+        'snapchat': ['Snapchat Social'],
+        'stv': ['STV Video'],
+        'hulu': ['HULU Video'],
+        'netflix': ['NETFLIX Video'],
+        'liveSports': ['LIVESPORTS Video'],
+        'spark-landscape': ['Spark Landscape'],
+        'spark-square': ['Spark Square'],
+        'spark-portrait': ['Spark Portrait'],
+        'spark-video': ['Spark Video'],
+        'contentSponsorship': ['AMPed contentSponsorship headerDesktop', 'AMPed contentSponsorship headerMobile', 'AMPed contentSponsorship footerLogo'],
+        'listenLive': ['AMPed listenLive skin', 'AMPed listenLive banners', 'AMPed listenLive preRoll'],
+        'mobileBillboard': ['AMPed mobileBillboard'],
+        'takeover': ['AMPed takeover skin', 'AMPed takeover billboard']
+      };
+      
+      const tacticDisplayNames = {
         'ignite': 'Ignite Banners',
         'amped': 'AMPed Banners',
         'facebook': 'Facebook',
@@ -504,12 +528,23 @@ const CreativeChecker = () => {
         'takeover': 'AMPed Takeover'
       };
       
-      const tacticName = tacticMap[selectedTactic];
+      const expectedMatches = tacticMatchMap[selectedTactic] || [];
+      
+      // Debug logging
+      console.log('Selected tactic:', selectedTactic);
+      console.log('File matches:', file.specCheck.matches);
+      console.log('Expected matches:', expectedMatches);
+      
       const matches = file.specCheck.matches.some(match => 
-        match.toLowerCase().includes(tacticName?.toLowerCase() || selectedTactic.toLowerCase())
+        expectedMatches.some(expectedMatch => 
+          match.toLowerCase().includes(expectedMatch.toLowerCase()) ||
+          expectedMatch.toLowerCase().includes(match.toLowerCase())
+        )
       );
       
-      return { matches, tactic: tacticName };
+      console.log('Tactic match result:', matches);
+      
+      return { matches, tactic: tacticDisplayNames[selectedTactic] };
     };
     
     const tacticCheck = checkTacticMatch();

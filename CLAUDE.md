@@ -9,9 +9,42 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run build` - Create production build in ./build folder
 - `npm test` - Run tests in interactive watch mode
 - `npm test -- --watchAll=false` - Run tests once (CI mode)
+- `./test-workflow.sh` - Run complete test suite before deployment
 
 ### Dependencies
 - `npm install` - Install all dependencies
+
+## Git Workflow
+
+### Branch Strategy
+- `main` - Production branch (protected, deployed to Vercel)
+- `develop` - Development branch for testing changes
+
+### Testing Workflow
+1. **Local Development**: Work on `develop` branch
+2. **Pre-commit Testing**: Run `./test-workflow.sh` to validate changes
+3. **Push to GitHub**: `git push origin develop`
+4. **Create Pull Request**: Open PR from `develop` to `main`
+5. **Automated Testing**: GitHub Actions runs tests on PR
+6. **Vercel Preview**: Automatic preview deployment for PR
+7. **Merge to Main**: After review and tests pass
+
+### Quick Commands
+```bash
+# Switch to develop branch
+git checkout develop
+
+# Run full test suite
+./test-workflow.sh
+
+# Push changes
+git add .
+git commit -m "Your message"
+git push origin develop
+
+# Create PR (using GitHub CLI)
+gh pr create --base main --title "Your PR title"
+```
 
 ## Architecture
 

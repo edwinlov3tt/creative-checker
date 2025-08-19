@@ -530,19 +530,12 @@ const CreativeChecker = () => {
       
       const expectedMatches = tacticMatchMap[selectedTactic] || [];
       
-      // Debug logging
-      console.log('Selected tactic:', selectedTactic);
-      console.log('File matches:', file.specCheck.matches);
-      console.log('Expected matches:', expectedMatches);
-      
       const matches = file.specCheck.matches.some(match => 
         expectedMatches.some(expectedMatch => 
           match.toLowerCase().includes(expectedMatch.toLowerCase()) ||
           expectedMatch.toLowerCase().includes(match.toLowerCase())
         )
       );
-      
-      console.log('Tactic match result:', matches);
       
       return { matches, tactic: tacticDisplayNames[selectedTactic] };
     };
@@ -680,8 +673,35 @@ const CreativeChecker = () => {
               </div>
               <div className="space-y-2 mb-4">
                 {file.specCheck.matches.map((match, idx) => {
-                  const isSelectedTactic = selectedTactic !== 'all' && 
-                    match.toLowerCase().includes(tacticCheck.tactic?.toLowerCase() || selectedTactic.toLowerCase());
+                  const isSelectedTactic = selectedTactic !== 'all' && (() => {
+                    const tacticMatchMap = {
+                      'ignite': ['Ignite Banner'],
+                      'amped': ['AMPed Banner'],
+                      'facebook': ['Facebook Social'],
+                      'instagram': ['Instagram Social'],
+                      'pinterest': ['Pinterest Social'],
+                      'linkedin': ['Linkedin Social'],
+                      'tiktok': ['Tiktok Social'],
+                      'snapchat': ['Snapchat Social'],
+                      'stv': ['STV Video'],
+                      'hulu': ['HULU Video'],
+                      'netflix': ['NETFLIX Video'],
+                      'liveSports': ['LIVESPORTS Video'],
+                      'spark-landscape': ['Spark Landscape'],
+                      'spark-square': ['Spark Square'],
+                      'spark-portrait': ['Spark Portrait'],
+                      'spark-video': ['Spark Video'],
+                      'contentSponsorship': ['AMPed contentSponsorship headerDesktop', 'AMPed contentSponsorship headerMobile', 'AMPed contentSponsorship footerLogo'],
+                      'listenLive': ['AMPed listenLive skin', 'AMPed listenLive banners', 'AMPed listenLive preRoll'],
+                      'mobileBillboard': ['AMPed mobileBillboard'],
+                      'takeover': ['AMPed takeover skin', 'AMPed takeover billboard']
+                    };
+                    const expectedMatches = tacticMatchMap[selectedTactic] || [];
+                    return expectedMatches.some(expectedMatch => 
+                      match.toLowerCase().includes(expectedMatch.toLowerCase()) ||
+                      expectedMatch.toLowerCase().includes(match.toLowerCase())
+                    );
+                  })();
                   return (
                     <div 
                       key={idx} 

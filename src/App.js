@@ -1,8 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { 
   Upload, FileText, Image, Video, Settings, Download, Check, AlertCircle, 
-  Trash2, Edit2, Save, Archive, BarChart3, Zap, Palette, Target,
-  Clock, FileCheck, Sparkles, TrendingUp, Globe, Shield
+  Trash2, Edit2, Save, Archive, Sparkles
 } from 'lucide-react';
 import JSZip from 'jszip';
 
@@ -12,6 +11,7 @@ const CreativeChecker = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStatus, setProcessingStatus] = useState('');
   const [activeTab, setActiveTab] = useState('upload');
+  const [selectedTactic, setSelectedTactic] = useState('all');
   const [specs, setSpecs] = useState({
     bannerAds: {
       ignite: {
@@ -237,35 +237,6 @@ const CreativeChecker = () => {
     return { matches, warnings, category };
   };
 
-  // Get a preview of ZIP file contents (optional feature)
-  const previewZipContents = async (zipFile) => {
-    try {
-      const zip = new JSZip();
-      const zipContent = await zip.loadAsync(zipFile);
-      const supportedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'mp4', 'mov', 'avi', 'mkv', 'webm', 'pdf'];
-      
-      const fileList = [];
-      for (const [filename, fileData] of Object.entries(zipContent.files)) {
-        if (fileData.dir || filename.startsWith('__MACOSX/') || filename.startsWith('.')) {
-          continue;
-        }
-        
-        const extension = filename.split('.').pop()?.toLowerCase();
-        if (extension && supportedExtensions.includes(extension)) {
-          fileList.push({
-            name: filename,
-            size: fileData._data?.uncompressedSize || 0,
-            extension: extension.toUpperCase()
-          });
-        }
-      }
-      
-      return fileList;
-    } catch (error) {
-      console.error('Error previewing ZIP contents:', error);
-      return [];
-    }
-  };
 
   // Process ZIP files using JSZip
   const processZipFile = async (zipFile) => {
@@ -419,6 +390,7 @@ const CreativeChecker = () => {
     
     const droppedFiles = Array.from(e.dataTransfer.files);
     await processFiles(droppedFiles);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handle file input change
@@ -504,6 +476,43 @@ const CreativeChecker = () => {
   const FileCard = ({ file }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editName, setEditName] = useState(file.displayName);
+    
+    // Check if file matches selected tactic
+    const checkTacticMatch = () => {
+      if (selectedTactic === 'all') return { matches: true, tactic: null };
+      
+      const tacticMap = {
+        'ignite': 'Ignite Banners',
+        'amped': 'AMPed Banners',
+        'facebook': 'Facebook',
+        'instagram': 'Instagram',
+        'pinterest': 'Pinterest',
+        'linkedin': 'LinkedIn',
+        'tiktok': 'TikTok',
+        'snapchat': 'Snapchat',
+        'stv': 'STV',
+        'hulu': 'Hulu',
+        'netflix': 'Netflix',
+        'liveSports': 'Live Sports',
+        'spark-landscape': 'Spark Landscape',
+        'spark-square': 'Spark Square',
+        'spark-portrait': 'Spark Portrait',
+        'spark-video': 'Spark Video',
+        'contentSponsorship': 'AMPed Content Sponsorship',
+        'listenLive': 'AMPed Listen Live',
+        'mobileBillboard': 'AMPed Mobile Billboard',
+        'takeover': 'AMPed Takeover'
+      };
+      
+      const tacticName = tacticMap[selectedTactic];
+      const matches = file.specCheck.matches.some(match => 
+        match.toLowerCase().includes(tacticName?.toLowerCase() || selectedTactic.toLowerCase())
+      );
+      
+      return { matches, tactic: tacticName };
+    };
+    
+    const tacticCheck = checkTacticMatch();
 
     const handleSaveName = () => {
       updateFileName(file.id, editName);
@@ -511,7 +520,7 @@ const CreativeChecker = () => {
     };
 
     return (
-      <div className="group bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+      <div className="group bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-6 shadow-lg hover:shadow-xl transition-all duration-300">
         {/* Header */}
         <div className="flex items-start justify-between mb-6">
           <div className="flex items-center space-x-3 flex-1">
@@ -532,7 +541,7 @@ const CreativeChecker = () => {
                     type="text"
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#cf0e0f] focus:border-transparent"
                   />
                   <button onClick={handleSaveName} className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors">
                     <Save className="w-4 h-4" />
@@ -599,6 +608,23 @@ const CreativeChecker = () => {
           </div>
         </div>
 
+        {/* Tactic Mismatch Warning */}
+        {selectedTactic !== 'all' && !tacticCheck.matches && (
+          <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-xl">
+            <div className="flex items-start">
+              <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                <AlertCircle className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h5 className="font-semibold text-red-800 mb-1">Tactic Mismatch</h5>
+                <p className="text-sm text-red-700">
+                  This creative does not match your selected tactic: <strong>{tacticCheck.tactic}</strong>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Spec Compliance */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
@@ -613,15 +639,44 @@ const CreativeChecker = () => {
           </div>
           
           {file.specCheck.matches.length > 0 ? (
-            <div className="space-y-3 mb-4">
-              {file.specCheck.matches.map((match, idx) => (
-                <div key={idx} className="flex items-center p-3 bg-green-50 border border-green-200 rounded-xl">
-                  <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center mr-3">
-                    <Check className="w-4 h-4 text-white" />
-                  </div>
-                  <span className="font-medium text-green-800">{match}</span>
-                </div>
-              ))}
+            <div>
+              <div className="mb-3">
+                <span className="text-sm font-medium text-gray-600">Matches Found:</span>
+              </div>
+              <div className="space-y-2 mb-4">
+                {file.specCheck.matches.map((match, idx) => {
+                  const isSelectedTactic = selectedTactic !== 'all' && 
+                    match.toLowerCase().includes(tacticCheck.tactic?.toLowerCase() || selectedTactic.toLowerCase());
+                  return (
+                    <div 
+                      key={idx} 
+                      className={`flex items-center p-3 rounded-xl border ${
+                        isSelectedTactic 
+                          ? 'bg-green-50 border-green-300' 
+                          : 'bg-gray-50 border-gray-200'
+                      }`}
+                    >
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${
+                        isSelectedTactic 
+                          ? 'bg-green-500' 
+                          : 'bg-gray-400'
+                      }`}>
+                        <Check className="w-4 h-4 text-white" />
+                      </div>
+                      <span className={`font-medium ${
+                        isSelectedTactic 
+                          ? 'text-green-800' 
+                          : 'text-gray-700'
+                      }`}>
+                        {match}
+                        {isSelectedTactic && (
+                          <span className="ml-2 px-2 py-0.5 bg-green-600 text-white text-xs rounded-full">TARGET MATCH</span>
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           ) : (
             <div className="flex items-center p-3 bg-orange-50 border border-orange-200 rounded-xl mb-4">
@@ -640,106 +695,6 @@ const CreativeChecker = () => {
                   <span className="text-sm text-yellow-800">{warning}</span>
                 </div>
               ))}
-            </div>
-          )}
-        </div>
-
-        {/* AI Analysis */}
-        <div>
-          <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mr-2">
-              <Sparkles className="w-4 h-4 text-white" />
-            </div>
-            AI-Powered Analysis
-          </h4>
-          
-          {/* Quality & Metrics */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4">
-              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Quality Score</div>
-              <div className={`text-xl font-bold ${
-                file.analysis.quality === 'Excellent' ? 'text-green-600' :
-                file.analysis.quality === 'Good' ? 'text-blue-600' :
-                file.analysis.quality === 'Fair' ? 'text-orange-600' : 'text-red-600'
-              }`}>{file.analysis.quality}</div>
-            </div>
-            <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4">
-              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Aspect Ratio</div>
-              <div className="text-xl font-bold text-gray-900 font-mono">{file.analysis.aspectRatio}</div>
-            </div>
-          </div>
-          
-          {/* Theme & Style */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div>
-              <div className="text-sm font-medium text-gray-700 mb-2">Creative Theme</div>
-              <span className="inline-block px-3 py-2 bg-blue-100 text-blue-800 rounded-xl font-medium">
-                {file.analysis.theme}
-              </span>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-gray-700 mb-2">Visual Style</div>
-              <span className="inline-block px-3 py-2 bg-purple-100 text-purple-800 rounded-xl font-medium">
-                {file.analysis.style}
-              </span>
-            </div>
-          </div>
-          
-          {/* Platform Suggestions */}
-          <div className="mb-6">
-            <div className="text-sm font-medium text-gray-700 mb-3">Recommended Platforms</div>
-            <div className="flex flex-wrap gap-2">
-              {file.analysis.suggestedPlatforms.map((platform, idx) => (
-                <span key={idx} className="px-3 py-2 bg-indigo-100 text-indigo-800 rounded-xl text-sm font-medium">
-                  {platform}
-                </span>
-              ))}
-            </div>
-          </div>
-          
-          {/* Creative Elements */}
-          <div className="mb-6">
-            <div className="text-sm font-medium text-gray-700 mb-3">Detected Elements</div>
-            <div className="flex flex-wrap gap-2">
-              <div className="flex items-center px-3 py-2 bg-gray-100 rounded-xl">
-                <div 
-                  className="w-4 h-4 rounded-full mr-2" 
-                  style={{ backgroundColor: file.analysis.dominantColors }}
-                ></div>
-                <span className="text-sm font-medium text-gray-700">Dominant Color</span>
-              </div>
-              {file.analysis.hasText && (
-                <span className="px-3 py-2 bg-green-100 text-green-800 rounded-xl text-sm font-medium">
-                  Text Present
-                </span>
-              )}
-              {file.analysis.hasCTA && (
-                <span className="px-3 py-2 bg-blue-100 text-blue-800 rounded-xl text-sm font-medium">
-                  Call-to-Action
-                </span>
-              )}
-              {file.analysis.hasLogo && (
-                <span className="px-3 py-2 bg-purple-100 text-purple-800 rounded-xl text-sm font-medium">
-                  Logo/Branding
-                </span>
-              )}
-            </div>
-          </div>
-          
-          {/* Recommendations */}
-          {file.analysis.recommendations.length > 0 && (
-            <div>
-              <div className="text-sm font-medium text-gray-700 mb-3">AI Recommendations</div>
-              <div className="space-y-2">
-                {file.analysis.recommendations.map((rec, idx) => (
-                  <div key={idx} className="flex items-start p-3 bg-blue-50 border border-blue-100 rounded-xl">
-                    <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                      <Sparkles className="w-3 h-3 text-white" />
-                    </div>
-                    <span className="text-sm text-blue-800">{rec}</span>
-                  </div>
-                ))}
-              </div>
             </div>
           )}
         </div>
@@ -775,7 +730,7 @@ const CreativeChecker = () => {
             </div>
             <button 
               onClick={saveSpecs}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-semibold flex items-center space-x-2 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+              className="px-6 py-3 bg-gradient-to-r from-[#cf0e0f] to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl font-semibold flex items-center space-x-2 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
             >
               <Save className="w-5 h-5" />
               <span>Save Changes</span>
@@ -816,7 +771,7 @@ const CreativeChecker = () => {
                   <label className="block">
                     <span className="text-sm font-medium text-gray-700 mb-2 block">Allowed Dimensions</span>
                     <textarea
-                      className="w-full p-3 border border-gray-300 rounded-xl text-sm font-mono bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full p-3 border border-gray-300 rounded-xl text-sm font-mono bg-gray-50 focus:ring-2 focus:ring-[#cf0e0f] focus:border-transparent"
                       rows={3}
                       value={editingSpecs.bannerAds.ignite.sizes.join(', ')}
                       onChange={(e) => {
@@ -849,7 +804,7 @@ const CreativeChecker = () => {
                   <label className="block">
                     <span className="text-sm font-medium text-gray-700 mb-2 block">Allowed Dimensions</span>
                     <textarea
-                      className="w-full p-3 border border-gray-300 rounded-xl text-sm font-mono bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full p-3 border border-gray-300 rounded-xl text-sm font-mono bg-gray-50 focus:ring-2 focus:ring-[#cf0e0f] focus:border-transparent"
                       rows={3}
                       value={editingSpecs.bannerAds.amped.sizes.join(', ')}
                       onChange={(e) => {
@@ -890,7 +845,7 @@ const CreativeChecker = () => {
                     <label className="block">
                       <span className="text-sm font-medium text-gray-700 mb-2 block">Allowed Sizes</span>
                       <textarea
-                        className="w-full p-3 border border-gray-300 rounded-xl text-sm font-mono bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full p-3 border border-gray-300 rounded-xl text-sm font-mono bg-gray-50 focus:ring-2 focus:ring-[#cf0e0f] focus:border-transparent"
                         rows={2}
                         value={config.sizes.join(', ')}
                         onChange={(e) => {
@@ -935,7 +890,7 @@ const CreativeChecker = () => {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-[#cf0e0f] to-red-700 rounded-xl flex items-center justify-center">
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
               <div>
@@ -968,7 +923,7 @@ const CreativeChecker = () => {
               onClick={() => setActiveTab(id)}
               className={`group relative px-6 py-4 rounded-2xl flex items-center space-x-3 transition-all duration-200 ${
                 activeTab === id 
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25 scale-105' 
+                  ? 'bg-gradient-to-r from-[#cf0e0f] to-red-700 text-white shadow-lg shadow-red-500/25 scale-105' 
                   : 'bg-white/70 text-gray-600 hover:bg-white hover:shadow-md backdrop-blur-sm'
               }`}
             >
@@ -995,12 +950,59 @@ const CreativeChecker = () => {
           <SpecsSettings />
         ) : (
           <div className="space-y-8">
+            {/* Tactic Selection */}
+            <div className="glass rounded-3xl p-6 shadow-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">Select Target Tactic</h3>
+                  <p className="text-gray-600">Choose which tactic you want to validate your creatives against</p>
+                </div>
+                <select
+                  value={selectedTactic}
+                  onChange={(e) => setSelectedTactic(e.target.value)}
+                  className="px-6 py-3 bg-white border-2 border-gray-200 rounded-xl font-semibold text-gray-700 focus:border-[#cf0e0f] focus:ring-2 focus:ring-[#cf0e0f]/20 transition-all"
+                >
+                  <option value="all">All Tactics</option>
+                  <optgroup label="Banner Ads">
+                    <option value="ignite">Ignite Banners</option>
+                    <option value="amped">AMPed Banners</option>
+                  </optgroup>
+                  <optgroup label="Social Media">
+                    <option value="facebook">Facebook</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="pinterest">Pinterest</option>
+                    <option value="linkedin">LinkedIn</option>
+                    <option value="tiktok">TikTok</option>
+                    <option value="snapchat">Snapchat</option>
+                  </optgroup>
+                  <optgroup label="Video Platforms">
+                    <option value="stv">STV</option>
+                    <option value="hulu">Hulu</option>
+                    <option value="netflix">Netflix</option>
+                    <option value="liveSports">Live Sports</option>
+                  </optgroup>
+                  <optgroup label="Spark Creative">
+                    <option value="spark-landscape">Spark Landscape</option>
+                    <option value="spark-square">Spark Square</option>
+                    <option value="spark-portrait">Spark Portrait</option>
+                    <option value="spark-video">Spark Video</option>
+                  </optgroup>
+                  <optgroup label="AMPed Products">
+                    <option value="contentSponsorship">Content Sponsorship</option>
+                    <option value="listenLive">Listen Live</option>
+                    <option value="mobileBillboard">Mobile Billboard</option>
+                    <option value="takeover">Takeover</option>
+                  </optgroup>
+                </select>
+              </div>
+            </div>
+            
             {/* Upload Area */}
             <div className="relative">
               <div
                 className={`relative border-2 border-dashed rounded-3xl p-12 text-center transition-all duration-300 ${
                   isDragging 
-                    ? 'border-blue-400 bg-gradient-to-r from-blue-50 to-indigo-50 scale-102 shadow-xl' 
+                    ? 'border-[#cf0e0f] bg-gradient-to-r from-red-50 to-pink-50 scale-102 shadow-xl' 
                     : 'border-gray-300 bg-white/50 hover:bg-white/70 backdrop-blur-sm'
                 }`}
                 onDrop={handleDrop}
@@ -1011,7 +1013,7 @@ const CreativeChecker = () => {
                 <div className="max-w-md mx-auto">
                   <div className={`w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center transition-all ${
                     isDragging 
-                      ? 'bg-blue-500 shadow-lg' 
+                      ? 'bg-[#cf0e0f] shadow-lg' 
                       : 'bg-gradient-to-r from-gray-100 to-gray-200'
                   }`}>
                     <Upload className={`w-10 h-10 ${
@@ -1049,10 +1051,10 @@ const CreativeChecker = () => {
                   </div>
                   
                   {isProcessing && processingStatus && (
-                    <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
                       <div className="flex items-center justify-center space-x-3">
-                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
-                        <span className="text-blue-700 font-medium">{processingStatus}</span>
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-[#cf0e0f] border-t-transparent"></div>
+                        <span className="text-red-700 font-medium">{processingStatus}</span>
                       </div>
                     </div>
                   )}
@@ -1063,7 +1065,7 @@ const CreativeChecker = () => {
                     className={`px-8 py-4 rounded-xl font-semibold transition-all duration-200 ${
                       isProcessing
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105'
+                        : 'bg-gradient-to-r from-[#cf0e0f] to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-lg hover:shadow-xl transform hover:scale-105'
                     }`}
                   >
                     {isProcessing ? (
@@ -1109,7 +1111,7 @@ const CreativeChecker = () => {
                     </button>
                     <button 
                       onClick={downloadResults}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                      className="px-4 py-2 bg-[#cf0e0f] hover:bg-red-700 text-white rounded-xl font-semibold transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
                     >
                       <Download className="w-4 h-4" />
                       <span>Export JSON</span>
@@ -1167,7 +1169,7 @@ const CreativeChecker = () => {
 
             {/* Files Grid */}
             {files.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="space-y-6">
                 {files.map(file => (
                   <FileCard key={file.id} file={file} />
                 ))}

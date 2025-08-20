@@ -1,9 +1,10 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { 
-  Upload, FileText, Image, Video, Settings, Download, Check, AlertCircle, 
+import {
+  Upload, FileText, Image, Video, Settings, Download, Check, AlertCircle,
   Trash2, Edit2, Save, Archive, Sparkles
 } from 'lucide-react';
 import JSZip from 'jszip';
+import Button from './components/Button';
 
 const CreativeChecker = () => {
   const [files, setFiles] = useState([]);
@@ -973,31 +974,32 @@ const CreativeChecker = () => {
             { id: 'upload', label: 'Upload & Validate', icon: Upload, description: 'Upload and analyze creatives' },
             { id: 'settings', label: 'Spec Management', icon: Settings, description: 'Configure validation rules' }
           ].map(({ id, label, icon: Icon, description }) => (
-            <button
+            <Button
               key={id}
               onClick={() => setActiveTab(id)}
+              variant={activeTab === id ? 'primary' : 'secondary'}
               className={`group relative px-6 py-4 rounded-2xl flex items-center space-x-3 transition-all duration-200 ${
-                activeTab === id 
-                  ? 'bg-gradient-to-r from-[#cf0e0f] to-red-700 text-white shadow-lg shadow-red-500/25 scale-105' 
-                  : 'bg-white/70 text-gray-600 hover:bg-white hover:shadow-md backdrop-blur-sm'
+                activeTab === id ? 'scale-105' : 'backdrop-blur-sm'
               }`}
             >
-              <div className={`p-2 rounded-lg ${
-                activeTab === id 
-                  ? 'bg-white/20' 
-                  : 'bg-gray-100 group-hover:bg-gray-200'
-              }`}>
+              <div
+                className={`p-2 rounded-lg ${
+                  activeTab === id ? 'bg-white/20' : 'bg-gray-100 group-hover:bg-gray-200'
+                }`}
+              >
                 <Icon className="w-5 h-5" />
               </div>
               <div className="text-left">
                 <div className="font-semibold">{label}</div>
-                <div className={`text-xs ${
-                  activeTab === id 
-                    ? 'text-blue-100' 
-                    : 'text-gray-500'
-                }`}>{description}</div>
+                <div
+                  className={`text-xs ${
+                    activeTab === id ? 'text-blue-100' : 'text-gray-500'
+                  }`}
+                >
+                  {description}
+                </div>
               </div>
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -1114,27 +1116,24 @@ const CreativeChecker = () => {
                     </div>
                   )}
                   
-                  <button
+                  <Button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isProcessing}
-                    className={`px-8 py-4 rounded-xl font-semibold transition-all duration-200 ${
-                      isProcessing
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-[#cf0e0f] to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-lg hover:shadow-xl transform hover:scale-105'
-                    }`}
+                    variant="primary"
+                    className="px-8 py-4 flex items-center justify-center space-x-2"
                   >
                     {isProcessing ? (
-                      <div className="flex items-center space-x-2">
+                      <>
                         <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-400 border-t-transparent"></div>
                         <span>Processing...</span>
-                      </div>
+                      </>
                     ) : (
-                      <div className="flex items-center space-x-2">
+                      <>
                         <Upload className="w-5 h-5" />
                         <span>Choose Files to Upload</span>
-                      </div>
+                      </>
                     )}
-                  </button>
+                  </Button>
                   
                   <input
                     ref={fileInputRef}
@@ -1157,20 +1156,22 @@ const CreativeChecker = () => {
                     <p className="text-gray-600">Comprehensive analysis of your creative assets</p>
                   </div>
                   <div className="flex space-x-3">
-                    <button 
+                    <Button
                       onClick={downloadCSV}
-                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                      variant="secondary"
+                      className="px-4 py-2 flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white"
                     >
                       <Download className="w-4 h-4" />
                       <span>Export CSV</span>
-                    </button>
-                    <button 
+                    </Button>
+                    <Button
                       onClick={downloadResults}
-                      className="px-4 py-2 bg-[#cf0e0f] hover:bg-red-700 text-white rounded-xl font-semibold transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                      variant="danger"
+                      className="px-4 py-2 flex items-center space-x-2"
                     >
                       <Download className="w-4 h-4" />
                       <span>Export JSON</span>
-                    </button>
+                    </Button>
                   </div>
                 </div>
                 

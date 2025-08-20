@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { 
   Upload, FileText, Image, Video, Settings, Download, Check, AlertCircle, 
-  Trash2, Edit2, Save, Archive, Sparkles, Plus, Minus
+  Trash2, Edit2, Save, Archive, Sparkles, Plus, Minus, ChevronDown, X, Search
 } from 'lucide-react';
 import JSZip from 'jszip';
 
@@ -11,7 +11,12 @@ const CreativeChecker = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStatus, setProcessingStatus] = useState('');
   const [activeTab, setActiveTab] = useState('upload');
-  const [selectedTactic, setSelectedTactic] = useState('all');
+  const [selectedTactics, setSelectedTactics] = useState([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [lightboxImage, setLightboxImage] = useState(null);
+  const [showCollectionManager, setShowCollectionManager] = useState(false);
+  const [fileSortOrder, setFileSortOrder] = useState('default'); // 'default', 'compliant-first', 'non-compliant-first'
   const [specs, setSpecs] = useState({
     bannerAds: {
       ignite: {
@@ -85,6 +90,150 @@ const CreativeChecker = () => {
   });
   
   const fileInputRef = useRef(null);
+  const dropdownRef = useRef(null);
+
+  // Filename validation and sanitization
+  const sanitizeFilename = (filename) => {
+    // Remove invalid characters: < > : " / \ | ? *
+    let sanitized = filename.replace(/[<>:"/\\|?*]/g, '');
+    
+    // Replace spaces with hyphens
+    sanitized = sanitized.replace(/\s+/g, '-');
+    
+    // Remove leading/trailing spaces and periods
+    sanitized = sanitized.replace(/^[\s.]+|[\s.]+$/g, '');
+    
+    // Ensure it's not empty
+    if (!sanitized) {
+      sanitized = 'untitled';
+    }
+    
+    return sanitized;
+  };
+
+  // Validate filename input
+  const validateFilename = (filename) => {
+    const invalid = /[<>:"/\\|?*]/.test(filename);
+    const startsEndsWithSpaceOrPeriod = /^[\s.]|[\s.]$/.test(filename);
+    return !invalid && !startsEndsWithSpaceOrPeriod && filename.trim().length > 0;
+  };
+
+  // Get file collections based on folder structure
+  const getFileCollections = () => {
+    const collections = new Map();
+    
+    files.forEach(file => {
+      // Skip any remaining system files that might have slipped through
+      if (file.originalPath && (
+          file.originalPath.includes('__MACOSX') ||
+          file.originalPath.includes('.DS_Store') ||
+          file.originalPath.includes('/._')
+        )) {
+        return; // Skip system files
+      }
+      
+      if (file.isFromZip && file.originalPath && file.originalPath.includes('/')) {
+        const parts = file.originalPath.split('/');
+        const folderPath = parts.slice(0, -1).join('/');
+        
+        // Clean folder name for display
+        const cleanFolderName = folderPath.split('/').pop() || folderPath;
+        
+        if (!collections.has(folderPath)) {
+          collections.set(folderPath, {
+            path: folderPath,
+            name: cleanFolderName,
+            files: [],
+            zipSource: file.zipSource
+          });
+        }
+        
+        collections.get(folderPath).files.push(file);
+      } else {
+        // Individual files or root level files
+        const collectionKey = file.isFromZip ? `${file.zipSource}-root` : 'individual-files';
+        if (!collections.has(collectionKey)) {
+          collections.set(collectionKey, {
+            path: collectionKey,
+            name: file.isFromZip ? `${file.zipSource} (Root)` : 'Individual Files',
+            files: [],
+            zipSource: file.zipSource
+          });
+        }
+        
+        collections.get(collectionKey).files.push(file);
+      }
+    });
+    
+    return Array.from(collections.values()).filter(collection => collection.files.length > 0);
+  };
+
+  // Available tactics for dropdown
+  const availableTactics = [
+    { category: 'Banner Ads', items: [
+      { value: 'ignite', label: 'Ignite Banners' },
+      { value: 'amped', label: 'AMPed Banners' }
+    ]},
+    { category: 'Social Media', items: [
+      { value: 'facebook', label: 'Facebook' },
+      { value: 'instagram', label: 'Instagram' },
+      { value: 'pinterest', label: 'Pinterest' },
+      { value: 'linkedin', label: 'LinkedIn' },
+      { value: 'tiktok', label: 'TikTok' },
+      { value: 'snapchat', label: 'Snapchat' }
+    ]},
+    { category: 'Video Platforms', items: [
+      { value: 'stv', label: 'STV' },
+      { value: 'hulu', label: 'Hulu' },
+      { value: 'netflix', label: 'Netflix' },
+      { value: 'liveSports', label: 'Live Sports' }
+    ]},
+    { category: 'Spark & AMPed', items: [
+      { value: 'spark-landscape', label: 'Spark Landscape' },
+      { value: 'spark-square', label: 'Spark Square' },
+      { value: 'spark-portrait', label: 'Spark Portrait' },
+      { value: 'contentSponsorship', label: 'Content Sponsorship' },
+      { value: 'listenLive', label: 'Listen Live' },
+      { value: 'mobileBillboard', label: 'Mobile Billboard' }
+    ]}
+  ];
+
+  // Get all tactics as flat array for filtering
+  const allTactics = availableTactics.flatMap(cat => cat.items);
+  
+  // Filter tactics based on search term
+  const filteredTactics = allTactics.filter(tactic => 
+    tactic.label.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Get selected tactic labels
+  const getSelectedTacticLabels = () => {
+    return selectedTactics.map(value => {
+      const tactic = allTactics.find(t => t.value === value);
+      return tactic?.label || value;
+    });
+  };
+
+  // Toggle tactic selection
+  const toggleTactic = (value) => {
+    if (selectedTactics.includes(value)) {
+      setSelectedTactics(selectedTactics.filter(t => t !== value));
+    } else {
+      setSelectedTactics([...selectedTactics, value]);
+    }
+  };
+
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+        setSearchTerm('');
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Enhanced AI analysis function
   const analyzeCreative = useCallback((file, dimensions) => {
@@ -92,24 +241,47 @@ const CreativeChecker = () => {
     const isImage = file.type.startsWith('image/');
     const { width, height } = dimensions;
     
+    // Banner ad size mapping
+    const bannerAdSizes = {
+      '300x250': 'Medium Rectangle',
+      '728x90': 'Leaderboard', 
+      '160x600': 'Wide Skyscraper',
+      '336x280': 'Large Rectangle',
+      '320x50': 'Mobile Leaderboard',
+      '300x50': 'Mobile Banner',
+      '468x60': 'Full Banner',
+      '120x600': 'Skyscraper',
+      '300x600': 'Half Page', // Note: Large Skyscraper is also 300x600, using Half Page as primary
+    };
+    
     // Determine aspect ratio and orientation
     const aspectRatio = width && height ? (width / height).toFixed(2) : 'unknown';
+    const dimensionString = `${width}x${height}`;
+    
     let orientation = 'unknown';
     if (width && height) {
-      if (width > height) orientation = 'landscape';
-      else if (height > width) orientation = 'portrait';
-      else orientation = 'square';
+      // Check if it's a standard banner ad size first
+      if (bannerAdSizes[dimensionString]) {
+        orientation = bannerAdSizes[dimensionString];
+      } else {
+        // Fall back to generic orientation
+        if (width > height) orientation = 'landscape';
+        else if (height > width) orientation = 'portrait';
+        else orientation = 'square';
+      }
     }
 
     // Suggest platforms based on dimensions and format
     const suggestedPlatforms = [];
-    const dimensionString = `${width}x${height}`;
     
     if (dimensionString === '1080x1080') suggestedPlatforms.push('Instagram Square', 'Facebook Square', 'LinkedIn');
     if (dimensionString === '1080x1920') suggestedPlatforms.push('Instagram Stories', 'TikTok', 'Snapchat');
     if (dimensionString === '1920x1080') suggestedPlatforms.push('YouTube', 'Hulu', 'STV');
-    if (dimensionString === '728x90') suggestedPlatforms.push('Banner Ads');
-    if (dimensionString === '300x250') suggestedPlatforms.push('Medium Rectangle Banner');
+    
+    // Add banner ad suggestions with proper names
+    if (bannerAdSizes[dimensionString]) {
+      suggestedPlatforms.push(`${bannerAdSizes[dimensionString]} Banner Ad`);
+    }
 
     // Mock creative analysis
     const themes = ['Product Focus', 'Lifestyle', 'Brand Awareness', 'Promotional', 'Informational'];
@@ -176,14 +348,30 @@ const CreativeChecker = () => {
     const fileExtension = file.name.split('.').pop()?.toLowerCase();
     const fileSizeKB = file.size / 1024;
     
+    // Banner ad size mapping for better identification
+    const bannerAdSizes = {
+      '300x250': 'Medium Rectangle',
+      '728x90': 'Leaderboard', 
+      '160x600': 'Wide Skyscraper',
+      '336x280': 'Large Rectangle',
+      '320x50': 'Mobile Leaderboard',
+      '300x50': 'Mobile Banner',
+      '468x60': 'Full Banner',
+      '120x600': 'Skyscraper',
+      '300x600': 'Half Page',
+    };
+    
     let matches = [];
     let warnings = [];
     let category = 'Unknown';
+    let isBannerAd = false;
 
     // Check banner ads
     if (specs.bannerAds.ignite.sizes.includes(dimensionString)) {
-      matches.push('Ignite Banner');
+      const bannerName = bannerAdSizes[dimensionString] ? `${bannerAdSizes[dimensionString]} ` : '';
+      matches.push(`Ignite ${bannerName}Banner`);
       category = 'Banner Ads';
+      isBannerAd = true;
       const sizeReq = specs.bannerAds.ignite.sizeRequirements[dimensionString];
       if (sizeReq && fileSizeKB > sizeReq.maxSizeKB) {
         warnings.push(`File size exceeds ${sizeReq.maxSizeKB}KB limit for ${dimensionString} Ignite banners`);
@@ -191,12 +379,21 @@ const CreativeChecker = () => {
     }
     
     if (specs.bannerAds.amped.sizes.includes(dimensionString)) {
-      matches.push('AMPed Banner');
+      const bannerName = bannerAdSizes[dimensionString] ? `${bannerAdSizes[dimensionString]} ` : '';
+      matches.push(`AMPed ${bannerName}Banner`);
       category = 'Banner Ads';
+      isBannerAd = true;
       const sizeReq = specs.bannerAds.amped.sizeRequirements[dimensionString];
       if (sizeReq && fileSizeKB > sizeReq.maxSizeKB) {
         warnings.push(`File size exceeds ${sizeReq.maxSizeKB}KB limit for ${dimensionString} AMPed banners`);
       }
+    }
+    
+    // If it matches a standard banner size but not our specific specs, still identify it as a banner
+    if (!isBannerAd && bannerAdSizes[dimensionString]) {
+      matches.push(`${bannerAdSizes[dimensionString]} Banner Ad`);
+      category = 'Banner Ads';
+      isBannerAd = true;
     }
 
     // Check social media specs
@@ -250,7 +447,7 @@ const CreativeChecker = () => {
       warnings.push('Unusual file format - verify platform compatibility');
     }
 
-    return { matches, warnings, category };
+    return { matches, warnings, category, isBannerAd };
   };
 
 
@@ -265,14 +462,41 @@ const CreativeChecker = () => {
       const supportedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'mp4', 'mov', 'avi', 'mkv', 'webm', 'pdf'];
       
       for (const [filename, fileData] of Object.entries(zipContent.files)) {
-        // Skip directories and system files
-        if (fileData.dir || filename.startsWith('__MACOSX/') || filename.startsWith('.')) {
+        // Skip directories
+        if (fileData.dir) {
+          continue;
+        }
+
+        // Skip macOS system files and folders
+        if (filename.startsWith('__MACOSX/') || 
+            filename.includes('/__MACOSX/') ||
+            filename.startsWith('.DS_Store') ||
+            filename.includes('/.DS_Store') ||
+            filename.startsWith('._') ||
+            filename.includes('/._') ||
+            filename.startsWith('.') && filename.includes('/')) {
+          console.log(`Skipping system file: ${filename}`);
+          continue;
+        }
+
+        // Skip hidden files and system files at any level
+        const pathParts = filename.split('/');
+        const hasSystemFile = pathParts.some(part => 
+          part.startsWith('.') || 
+          part.startsWith('~') ||
+          part === 'Thumbs.db' ||
+          part === 'desktop.ini'
+        );
+        
+        if (hasSystemFile) {
+          console.log(`Skipping system/hidden file: ${filename}`);
           continue;
         }
 
         // Check if file has supported extension
         const extension = filename.split('.').pop()?.toLowerCase();
         if (!extension || !supportedExtensions.includes(extension)) {
+          console.log(`Skipping unsupported file: ${filename}`);
           continue;
         }
 
@@ -295,20 +519,27 @@ const CreativeChecker = () => {
           else if (extension === 'webm') mimeType = 'video/webm';
           else if (extension === 'pdf') mimeType = 'application/pdf';
 
-          // Create File object from blob
+          // Create File object from blob - preserve original filename
           const file = new File([blob], filename, { 
             type: mimeType,
             lastModified: fileData.date?.getTime() || Date.now()
           });
 
-          extractedFiles.push(file);
+          extractedFiles.push({ file, originalPath: filename });
+          console.log(`Successfully extracted: ${filename}`);
         } catch (fileError) {
           console.warn(`Error extracting file ${filename}:`, fileError);
+          // Continue processing other files even if one fails
           continue;
         }
       }
 
-      console.log(`Successfully extracted ${extractedFiles.length} files from ${zipFile.name}`);
+      console.log(`Successfully extracted ${extractedFiles.length} supported files from ${zipFile.name}`);
+      
+      if (extractedFiles.length === 0) {
+        console.warn(`No supported creative files found in ${zipFile.name}. Supported formats: ${supportedExtensions.join(', ')}`);
+      }
+      
       return extractedFiles;
     } catch (error) {
       console.error('Error processing ZIP file:', error);
@@ -332,20 +563,21 @@ const CreativeChecker = () => {
           const extractedFiles = await processZipFile(file);
           
           if (extractedFiles.length === 0) {
-            zipErrors.push(`No supported files found in ${file.name}`);
+            zipErrors.push(`No supported creative files found in ${file.name}. System files were filtered out.`);
             continue;
           }
 
           setProcessingStatus(`Analyzing ${extractedFiles.length} files from ${file.name}...`);
           
-          for (const extractedFile of extractedFiles) {
+          for (const { file: extractedFile, originalPath } of extractedFiles) {
             const dimensions = await getMediaDimensions(extractedFile);
             const analysis = analyzeCreative(extractedFile, dimensions);
             const specCheck = checkSpecs(extractedFile, dimensions);
 
             processedFiles.push({
-              id: Math.random().toString(36).substr(2, 9),
+              id: Math.random().toString(36).substring(2, 11),
               originalName: extractedFile.name,
+              originalPath: originalPath, // Store the original folder structure
               displayName: extractedFile.name,
               file: extractedFile,
               previewUrl: URL.createObjectURL(extractedFile),
@@ -359,7 +591,14 @@ const CreativeChecker = () => {
             });
           }
           
-          console.log(`Successfully processed ${extractedFiles.length} files from ${file.name}`);
+          console.log(`Successfully processed ${extractedFiles.length} creative files from ${file.name} (system files filtered out)`);
+          
+          // Log summary of what was found vs filtered
+          const totalFilesInZip = Object.keys(await new JSZip().loadAsync(file).then(zip => zip.files)).length;
+          const filteredCount = totalFilesInZip - extractedFiles.length;
+          if (filteredCount > 0) {
+            console.log(`Filtered out ${filteredCount} system/unsupported files from ${file.name}`);
+          }
         } catch (error) {
           console.error(`Error processing ZIP file ${file.name}:`, error);
           zipErrors.push(`Error processing ${file.name}: ${error.message}`);
@@ -375,6 +614,7 @@ const CreativeChecker = () => {
           processedFiles.push({
             id: Math.random().toString(36).substr(2, 9),
             originalName: file.name,
+            originalPath: file.name, // For individual files, path is just the filename
             displayName: file.name,
             file,
             previewUrl: URL.createObjectURL(file),
@@ -393,7 +633,8 @@ const CreativeChecker = () => {
 
     // Show any ZIP processing errors
     if (zipErrors.length > 0) {
-      alert(`ZIP Processing Issues:\n${zipErrors.join('\n')}`);
+      console.warn('ZIP processing issues:', zipErrors);
+      alert(`ZIP Processing Issues:\n${zipErrors.join('\n')}\n\nNote: System files (like __MACOSX, .DS_Store) are automatically filtered out.`);
     }
 
     setFiles(prev => [...prev, ...processedFiles]);
@@ -424,77 +665,288 @@ const CreativeChecker = () => {
     ));
   };
 
-  // Remove file
+  // Remove file with confirmation
   const removeFile = (id) => {
-    setFiles(prev => {
-      const fileToRemove = prev.find(f => f.id === id);
-      if (fileToRemove?.previewUrl) {
-        URL.revokeObjectURL(fileToRemove.previewUrl);
+    const fileToRemove = files.find(f => f.id === id);
+    const fileName = fileToRemove?.displayName || 'this file';
+    
+    if (window.confirm(`Are you sure you want to delete ${fileName}?`)) {
+      setFiles(prev => {
+        const fileToRemove = prev.find(f => f.id === id);
+        if (fileToRemove?.previewUrl) {
+          URL.revokeObjectURL(fileToRemove.previewUrl);
+        }
+        return prev.filter(file => file.id !== id);
+      });
+    }
+  };
+
+  // Download specific collection
+  const downloadCollection = async (collection, customName = null) => {
+    if (collection.files.length === 0) return;
+    
+    const zip = new JSZip();
+    const collectionName = customName ? sanitizeFilename(customName) : sanitizeFilename(collection.name);
+    
+    // Add each file to the ZIP
+    for (const fileData of collection.files) {
+      // Preserve file extension and sanitize filename
+      const originalExt = fileData.originalName.split('.').pop();
+      let sanitizedFileName = fileData.displayName;
+      
+      // Ensure filename has correct extension
+      if (!sanitizedFileName.toLowerCase().endsWith(`.${originalExt.toLowerCase()}`)) {
+        const nameWithoutExt = sanitizedFileName.split('.').slice(0, -1).join('.') || sanitizedFileName;
+        sanitizedFileName = `${nameWithoutExt}.${originalExt}`;
       }
-      return prev.filter(file => file.id !== id);
-    });
+      
+      // Sanitize the filename
+      sanitizedFileName = sanitizeFilename(sanitizedFileName);
+      
+      // Add the file to the zip
+      zip.file(sanitizedFileName, fileData.file);
+    }
+    
+    // Generate the ZIP file
+    const content = await zip.generateAsync({ type: 'blob' });
+    
+    // Create a download link
+    const url = URL.createObjectURL(content);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${collectionName}-${new Date().toISOString().split('T')[0]}.zip`;
+    link.click();
+    
+    // Clean up the URL
+    URL.revokeObjectURL(url);
   };
 
-  // Download results as JSON
-  const downloadResults = () => {
-    const results = files.map(file => ({
-      fileName: file.displayName,
-      originalName: file.originalName,
-      dimensions: file.dimensions,
-      fileSizeKB: Math.round(file.size / 1024),
-      format: file.analysis.format,
-      category: file.specCheck.category,
-      specMatches: file.specCheck.matches,
-      warnings: file.specCheck.warnings,
-      analysis: file.analysis,
-      isFromZip: file.isFromZip,
-      zipSource: file.zipSource || null
-    }));
-
-    const dataStr = JSON.stringify(results, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+  // Download all creatives as ZIP preserving original structure
+  const downloadCreatives = async () => {
+    if (files.length === 0) return;
     
-    const exportFileDefaultName = `creative-analysis-${new Date().toISOString().split('T')[0]}.json`;
+    const zip = new JSZip();
     
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
+    // Add each file to the ZIP preserving original folder structure
+    for (const fileData of files) {
+      // Use original path if file was from ZIP, or display name if renamed
+      let filePath;
+      
+      if (fileData.isFromZip && fileData.originalPath) {
+        // For files from ZIP, use original path but update the filename if it was renamed
+        const originalDir = fileData.originalPath.substring(0, fileData.originalPath.lastIndexOf('/') + 1);
+        const originalFilename = fileData.originalPath.substring(fileData.originalPath.lastIndexOf('/') + 1);
+        
+        // Preserve file extension
+        const originalExt = fileData.originalName.split('.').pop();
+        let displayName = fileData.displayName;
+        if (!displayName.toLowerCase().endsWith(`.${originalExt.toLowerCase()}`)) {
+          const nameWithoutExt = displayName.split('.').slice(0, -1).join('.') || displayName;
+          displayName = `${nameWithoutExt}.${originalExt}`;
+        }
+        
+        // If display name was changed from original, use the new name but keep the folder structure
+        if (fileData.displayName !== originalFilename) {
+          filePath = originalDir + sanitizeFilename(displayName);
+        } else {
+          filePath = fileData.originalPath;
+        }
+      } else {
+        // For individual uploaded files, use display name with proper extension
+        const originalExt = fileData.originalName.split('.').pop();
+        let displayName = fileData.displayName;
+        if (!displayName.toLowerCase().endsWith(`.${originalExt.toLowerCase()}`)) {
+          const nameWithoutExt = displayName.split('.').slice(0, -1).join('.') || displayName;
+          displayName = `${nameWithoutExt}.${originalExt}`;
+        }
+        filePath = sanitizeFilename(displayName);
+      }
+      
+      // Add the file to the zip
+      zip.file(filePath, fileData.file);
+    }
+    
+    // Generate the ZIP file
+    const content = await zip.generateAsync({ type: 'blob' });
+    
+    // Create a download link
+    const url = URL.createObjectURL(content);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `creatives-${new Date().toISOString().split('T')[0]}.zip`;
+    link.click();
+    
+    // Clean up the URL
+    URL.revokeObjectURL(url);
   };
 
-  // Download CSV
-  const downloadCSV = () => {
-    const headers = [
-      'File Name', 'Original Name', 'Width', 'Height', 'Size (KB)', 'Format', 
-      'Category', 'Spec Matches', 'Warnings', 'Quality', 'Theme', 'Style', 'From ZIP'
-    ];
-    
-    const csvContent = [
-      headers.join(','),
-      ...files.map(file => [
-        `"${file.displayName}"`,
-        `"${file.originalName}"`,
-        file.dimensions.width,
-        file.dimensions.height,
-        Math.round(file.size / 1024),
-        file.analysis.format,
-        file.specCheck.category,
-        `"${file.specCheck.matches.join('; ')}"`,
-        `"${file.specCheck.warnings.join('; ')}"`,
-        file.analysis.quality,
-        file.analysis.theme,
-        file.analysis.style,
-        file.isFromZip ? 'Yes' : 'No'
-      ].join(','))
-    ].join('\n');
 
-    const dataUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent);
-    const exportFileDefaultName = `creative-analysis-${new Date().toISOString().split('T')[0]}.csv`;
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
+  const CollectionManager = () => {
+    const [selectedCollections, setSelectedCollections] = useState([]);
+    const [collectionNames, setCollectionNames] = useState({});
+    const [nameErrors, setNameErrors] = useState({});
+    const fileCollections = getFileCollections();
+
+    const handleNameChange = (collectionPath, newName) => {
+      setCollectionNames(prev => ({ ...prev, [collectionPath]: newName }));
+      
+      // Validate the name
+      if (!validateFilename(newName)) {
+        setNameErrors(prev => ({ 
+          ...prev, 
+          [collectionPath]: 'Invalid characters: < > : " / \\ | ? * or starts/ends with space/period' 
+        }));
+      } else {
+        setNameErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[collectionPath];
+          return newErrors;
+        });
+      }
+    };
+
+    const handleDownloadSelected = async () => {
+      for (const collectionPath of selectedCollections) {
+        const collection = fileCollections.find(c => c.path === collectionPath);
+        if (collection) {
+          const customName = collectionNames[collectionPath];
+          await downloadCollection(collection, customName);
+        }
+      }
+      setShowCollectionManager(false);
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Collection Manager</h2>
+                <p className="text-gray-600 mt-1">Download organized collections of your creatives</p>
+              </div>
+              <button
+                onClick={() => setShowCollectionManager(false)}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+          </div>
+
+          <div className="p-6 max-h-96 overflow-y-auto">
+            <div className="space-y-4">
+              {fileCollections.map(collection => (
+                <div key={collection.path} className="border border-gray-200 rounded-xl p-4">
+                  <div className="flex items-start space-x-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedCollections.includes(collection.path)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedCollections(prev => [...prev, collection.path]);
+                        } else {
+                          setSelectedCollections(prev => prev.filter(p => p !== collection.path));
+                        }
+                      }}
+                      className="mt-1 w-4 h-4 text-[#cf0e0f] focus:ring-[#cf0e0f] rounded"
+                    />
+                    
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Archive className="w-5 h-5 text-blue-600" />
+                        <h3 className="font-semibold text-gray-900">{collection.name}</h3>
+                        <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                          {collection.files.length} files
+                        </span>
+                      </div>
+                      
+                      <div className="mb-3">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Custom Collection Name (optional)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder={`e.g., Facebook-August-2025-Social-Recruiting-Set`}
+                          value={collectionNames[collection.path] || ''}
+                          onChange={(e) => handleNameChange(collection.path, e.target.value)}
+                          className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#cf0e0f]/20 ${
+                            nameErrors[collection.path] 
+                              ? 'border-red-300 focus:border-red-500' 
+                              : 'border-gray-300 focus:border-[#cf0e0f]'
+                          }`}
+                        />
+                        {nameErrors[collection.path] && (
+                          <p className="text-xs text-red-600 mt-1">{nameErrors[collection.path]}</p>
+                        )}
+                        <p className="text-xs text-gray-500 mt-1">
+                          Use hyphens instead of spaces. Avoid: &lt; &gt; : " / \\ | ? *
+                        </p>
+                      </div>
+                      
+                      <div className="text-sm text-gray-600">
+                        <div className="font-medium mb-1">Files in this collection:</div>
+                        <div className="grid grid-cols-2 gap-1 text-xs">
+                          {collection.files.slice(0, 6).map((file, idx) => (
+                            <div key={idx} className="truncate">
+                              {file.displayName}
+                            </div>
+                          ))}
+                          {collection.files.length > 6 && (
+                            <div className="text-gray-500">+{collection.files.length - 6} more...</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              {fileCollections.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <Archive className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                  <p>No collections found. Upload some files to get started.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="p-6 border-t border-gray-200 bg-gray-50">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                {selectedCollections.length > 0 ? (
+                  `${selectedCollections.length} collection${selectedCollections.length !== 1 ? 's' : ''} selected`
+                ) : (
+                  'Select collections to download'
+                )}
+              </div>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowCollectionManager(false)}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDownloadSelected}
+                  disabled={selectedCollections.length === 0 || Object.keys(nameErrors).length > 0}
+                  className={`px-6 py-2 rounded-xl font-semibold transition-all ${
+                    selectedCollections.length === 0 || Object.keys(nameErrors).length > 0
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2">
+                    <Download className="w-4 h-4" />
+                    <span>Download Selected</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const FileCard = ({ file }) => {
@@ -502,14 +954,21 @@ const CreativeChecker = () => {
     const [editName, setEditName] = useState(file.displayName);
     const [isCollapsed, setIsCollapsed] = useState(false);
     
-    // Check if file matches selected tactic
+    // Check if file matches selected tactics
     const checkTacticMatch = () => {
-      if (selectedTactic === 'all') return { matches: true, tactic: null };
+      if (selectedTactics.length === 0) {
+        // When no tactics selected, show all specs that match
+        return { 
+          matches: file.specCheck.matches.length > 0, 
+          matchedTactics: file.specCheck.matches, 
+          unmatchedTactics: [] 
+        };
+      }
       
       // Map tactic selection to what the spec checker actually returns
       const tacticMatchMap = {
-        'ignite': ['Ignite Banner'],
-        'amped': ['AMPed Banner'],
+        'ignite': ['Ignite', 'Ignite Banner'], // Match any Ignite banner type
+        'amped': ['AMPed', 'AMPed Banner'], // Match any AMPed banner type
         'facebook': ['Facebook Social'],
         'instagram': ['Instagram Social'],
         'pinterest': ['Pinterest Social'],
@@ -553,48 +1012,130 @@ const CreativeChecker = () => {
         'takeover': 'AMPed Takeover'
       };
       
-      const expectedMatches = tacticMatchMap[selectedTactic] || [];
+      const matchedTactics = [];
+      const unmatchedTactics = [];
       
-      const matches = file.specCheck.matches.some(match => 
-        expectedMatches.some(expectedMatch => 
-          match.toLowerCase().includes(expectedMatch.toLowerCase()) ||
-          expectedMatch.toLowerCase().includes(match.toLowerCase())
-        )
-      );
+      selectedTactics.forEach(tactic => {
+        const expectedMatches = tacticMatchMap[tactic] || [];
+        const matches = file.specCheck.matches.some(match => 
+          expectedMatches.some(expectedMatch => 
+            match.toLowerCase().includes(expectedMatch.toLowerCase()) ||
+            expectedMatch.toLowerCase().includes(match.toLowerCase())
+          )
+        );
+        
+        if (matches) {
+          matchedTactics.push(tacticDisplayNames[tactic]);
+        } else {
+          unmatchedTactics.push(tacticDisplayNames[tactic]);
+        }
+      });
       
-      return { matches, tactic: tacticDisplayNames[selectedTactic] };
+      return { 
+        matches: matchedTactics.length > 0, 
+        matchedTactics, 
+        unmatchedTactics 
+      };
     };
     
-    // Check if specific spec requirements match selected tactic
+    // Check if specific spec requirements match selected tactics
     const checkSpecRequirementMatch = (type) => {
-      if (selectedTactic === 'all') return false;
-      
       const dimensionString = `${file.dimensions.width}x${file.dimensions.height}`;
       const fileSizeKB = file.size / 1024;
       const fileExtension = file.analysis.format.toLowerCase();
       
-      // Check if this file matches the selected tactic specs
-      if ((selectedTactic === 'ignite' && file.specCheck.matches.includes('Ignite Banner')) ||
-          (selectedTactic === 'amped' && file.specCheck.matches.includes('AMPed Banner'))) {
+      if (selectedTactics.length === 0) {
+        // When no tactics selected, check against all available specs
+        let matches = false;
         
         if (type === 'dimensions') {
-          return specs.bannerAds[selectedTactic]?.sizes.includes(dimensionString);
+          matches = file.specCheck.matches.length > 0;
         } else if (type === 'fileSize') {
-          const sizeReq = specs.bannerAds[selectedTactic]?.sizeRequirements[dimensionString];
-          return sizeReq && fileSizeKB <= sizeReq.maxSizeKB;
+          // Check if file size meets banner requirements (if it's a banner)
+          if (file.specCheck.isBannerAd) {
+            const isIgniteBanner = file.specCheck.matches.some(m => m.toLowerCase().includes('ignite'));
+            const isAmpedBanner = file.specCheck.matches.some(m => m.toLowerCase().includes('amped'));
+            
+            if (isIgniteBanner) {
+              const sizeReq = specs.bannerAds.ignite.sizeRequirements[dimensionString];
+              matches = sizeReq && fileSizeKB <= sizeReq.maxSizeKB;
+            } else if (isAmpedBanner) {
+              const sizeReq = specs.bannerAds.amped.sizeRequirements[dimensionString];
+              matches = sizeReq && fileSizeKB <= sizeReq.maxSizeKB;
+            }
+          } else {
+            matches = true; // Non-banner files don't have specific size requirements
+          }
         } else if (type === 'format') {
-          return ['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension);
+          matches = ['jpg', 'jpeg', 'png', 'gif', 'mp4', 'mov', 'webm'].includes(fileExtension);
         }
+        
+        return { matches, hasSelectedTactics: false };
       }
       
-      // Add similar checks for other tactics
-      return false;
+      // Check if this file matches any of the selected tactic specs
+      const tacticResults = selectedTactics.map(tactic => {
+        // Check if file matches this tactic at all
+        const tacticMatches = file.specCheck.matches.some(match => 
+          (match.toLowerCase().includes('ignite') && tactic === 'ignite') ||
+          (match.toLowerCase().includes('amped') && tactic === 'amped') ||
+          (match.toLowerCase().includes('facebook') && tactic === 'facebook') ||
+          (match.toLowerCase().includes('instagram') && tactic === 'instagram') ||
+          (match.toLowerCase().includes('pinterest') && tactic === 'pinterest') ||
+          (match.toLowerCase().includes('linkedin') && tactic === 'linkedin') ||
+          (match.toLowerCase().includes('tiktok') && tactic === 'tiktok') ||
+          (match.toLowerCase().includes('snapchat') && tactic === 'snapchat') ||
+          (match.toLowerCase().includes('stv') && tactic === 'stv') ||
+          (match.toLowerCase().includes('hulu') && tactic === 'hulu') ||
+          (match.toLowerCase().includes('netflix') && tactic === 'netflix') ||
+          (match.toLowerCase().includes('livesports') && tactic === 'liveSports')
+        );
+        
+        if (!tacticMatches) return false;
+        
+        if (tactic === 'ignite' || tactic === 'amped') {
+          if (type === 'dimensions') {
+            return specs.bannerAds[tactic]?.sizes.includes(dimensionString);
+          } else if (type === 'fileSize') {
+            const sizeReq = specs.bannerAds[tactic]?.sizeRequirements[dimensionString];
+            return sizeReq && fileSizeKB <= sizeReq.maxSizeKB;
+          } else if (type === 'format') {
+            return ['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension);
+          }
+        } else {
+          // For non-banner tactics, basic format validation
+          if (type === 'format') {
+            return ['jpg', 'jpeg', 'png', 'gif', 'mp4', 'mov', 'webm'].includes(fileExtension);
+          }
+          return tacticMatches; // For dimensions and size, if it matches the tactic, it's valid
+        }
+        
+        return false;
+      });
+      
+      const matches = tacticResults.some(result => result === true);
+      return { matches, hasSelectedTactics: true };
     };
     
     const tacticCheck = checkTacticMatch();
 
     const handleSaveName = () => {
-      updateFileName(file.id, editName);
+      if (!validateFilename(editName)) {
+        alert('Invalid filename. Please avoid: < > : " / \\ | ? * and don\'t start/end with spaces or periods.');
+        return;
+      }
+      
+      // Preserve original file extension
+      const originalExt = file.originalName.split('.').pop();
+      let newName = editName;
+      
+      // Ensure the extension is preserved
+      if (!newName.toLowerCase().endsWith(`.${originalExt.toLowerCase()}`)) {
+        const nameWithoutExt = newName.split('.').slice(0, -1).join('.') || newName;
+        newName = `${nameWithoutExt}.${originalExt}`;
+      }
+      
+      updateFileName(file.id, sanitizeFilename(newName));
       setIsEditing(false);
     };
 
@@ -639,17 +1180,17 @@ const CreativeChecker = () => {
                       </span>
                     )}
                   </div>
-                  {(file.isFromZip || file.displayName.includes('/')) && (
+                  {(file.isFromZip || file.originalPath?.includes('/')) && (
                     <p className="text-xs text-gray-500 mt-1">
                       {file.isFromZip ? (
                         <>
-                          Extracted from {file.zipSource}
+                          Extracted from: {file.originalPath || file.zipSource}
                           {files.filter(f => f.zipSource === file.zipSource).length > 1 && 
                             ` • ${files.filter(f => f.zipSource === file.zipSource).length} files total`
                           }
                         </>
                       ) : (
-                        file.displayName.includes('/') && file.displayName.substring(0, file.displayName.lastIndexOf('/'))
+                        file.originalPath?.includes('/') && file.originalPath.substring(0, file.originalPath.lastIndexOf('/'))
                       )}
                     </p>
                   )}
@@ -667,17 +1208,19 @@ const CreativeChecker = () => {
             </button>
             
             <button 
-              onClick={() => setIsCollapsed(!isCollapsed)} 
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
-            >
-              {isCollapsed ? <Plus className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
-            </button>
-            
-            <button 
               onClick={() => removeFile(file.id)} 
               className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
             >
               <Trash2 className="w-4 h-4" />
+            </button>
+            
+            <div className="w-px h-6 bg-gray-300 mx-1"></div>
+            
+            <button 
+              onClick={() => setIsCollapsed(!isCollapsed)} 
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
+            >
+              {isCollapsed ? <Plus className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
             </button>
           </div>
         </div>
@@ -686,14 +1229,22 @@ const CreativeChecker = () => {
         {!isCollapsed && (
           <div>
             {/* Preview */}
-            <div className="relative mb-6 w-full h-48 rounded-xl overflow-hidden bg-gray-100">
+            <div className="relative mb-6 w-full h-48 rounded-xl overflow-hidden bg-gray-100 cursor-pointer group" 
+                 onClick={() => file.type.startsWith('image/') && setLightboxImage(file.previewUrl)}>
               {file.type.startsWith('image/') ? (
-                <img
-                  src={file.previewUrl}
-                  alt={file.displayName}
-                  loading="lazy"
-                  className="w-full h-full object-contain"
-                />
+                <>
+                  <img
+                    src={file.previewUrl}
+                    alt={file.displayName}
+                    loading="lazy"
+                    className="w-full h-full object-contain transition-transform group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <div className="bg-white/90 px-3 py-1 rounded-lg text-sm font-medium text-gray-700">
+                      Click to expand
+                    </div>
+                  </div>
+                </>
               ) : file.type.startsWith('video/') ? (
                 <video
                   src={file.previewUrl}
@@ -714,95 +1265,143 @@ const CreativeChecker = () => {
             {/* File Details */}
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className={`rounded-xl p-4 ${
-                checkSpecRequirementMatch('dimensions') 
+                checkSpecRequirementMatch('dimensions').matches 
                   ? 'bg-green-50 border-2 border-green-300' 
-                  : 'bg-gray-50'
+                  : (checkSpecRequirementMatch('dimensions').hasSelectedTactics && tacticCheck.unmatchedTactics.length > 0)
+                    ? 'bg-red-50 border-2 border-red-300'
+                    : 'bg-gray-50'
               }`}>
                 <div className={`text-xs font-medium uppercase tracking-wide mb-1 ${
-                  checkSpecRequirementMatch('dimensions') 
+                  checkSpecRequirementMatch('dimensions').matches 
                     ? 'text-green-700' 
-                    : 'text-gray-500'
+                    : (checkSpecRequirementMatch('dimensions').hasSelectedTactics && tacticCheck.unmatchedTactics.length > 0)
+                      ? 'text-red-700'
+                      : 'text-gray-500'
                 }`}>
                   Dimensions
-                  {checkSpecRequirementMatch('dimensions') && (
+                  {checkSpecRequirementMatch('dimensions').matches && (
                     <span className="ml-2 px-1 py-0.5 bg-green-600 text-white text-xs rounded">✓ MATCH</span>
+                  )}
+                  {(!checkSpecRequirementMatch('dimensions').matches && checkSpecRequirementMatch('dimensions').hasSelectedTactics && tacticCheck.unmatchedTactics.length > 0) && (
+                    <span className="ml-2 px-1 py-0.5 bg-red-600 text-white text-xs rounded">✗ NO MATCH</span>
                   )}
                 </div>
                 <div className={`text-lg font-bold font-mono ${
-                  checkSpecRequirementMatch('dimensions') 
+                  checkSpecRequirementMatch('dimensions').matches 
                     ? 'text-green-900' 
-                    : 'text-gray-900'
+                    : (checkSpecRequirementMatch('dimensions').hasSelectedTactics && tacticCheck.unmatchedTactics.length > 0)
+                      ? 'text-red-900'
+                      : 'text-gray-900'
                 }`}>
                   {file.dimensions.width} × {file.dimensions.height}
                 </div>
               </div>
               <div className={`rounded-xl p-4 ${
-                checkSpecRequirementMatch('fileSize') 
+                checkSpecRequirementMatch('fileSize').matches 
                   ? 'bg-green-50 border-2 border-green-300' 
-                  : 'bg-gray-50'
+                  : (checkSpecRequirementMatch('fileSize').hasSelectedTactics && tacticCheck.unmatchedTactics.length > 0)
+                    ? 'bg-red-50 border-2 border-red-300'
+                    : 'bg-gray-50'
               }`}>
                 <div className={`text-xs font-medium uppercase tracking-wide mb-1 ${
-                  checkSpecRequirementMatch('fileSize') 
+                  checkSpecRequirementMatch('fileSize').matches 
                     ? 'text-green-700' 
-                    : 'text-gray-500'
+                    : (checkSpecRequirementMatch('fileSize').hasSelectedTactics && tacticCheck.unmatchedTactics.length > 0)
+                      ? 'text-red-700'
+                      : 'text-gray-500'
                 }`}>
                   File Size
-                  {checkSpecRequirementMatch('fileSize') && (
+                  {checkSpecRequirementMatch('fileSize').matches && (
                     <span className="ml-2 px-1 py-0.5 bg-green-600 text-white text-xs rounded">✓ MATCH</span>
+                  )}
+                  {(!checkSpecRequirementMatch('fileSize').matches && checkSpecRequirementMatch('fileSize').hasSelectedTactics && tacticCheck.unmatchedTactics.length > 0) && (
+                    <span className="ml-2 px-1 py-0.5 bg-red-600 text-white text-xs rounded">✗ NO MATCH</span>
                   )}
                 </div>
                 <div className={`text-lg font-bold ${
-                  checkSpecRequirementMatch('fileSize') 
+                  checkSpecRequirementMatch('fileSize').matches 
                     ? 'text-green-900' 
-                    : 'text-gray-900'
+                    : (checkSpecRequirementMatch('fileSize').hasSelectedTactics && tacticCheck.unmatchedTactics.length > 0)
+                      ? 'text-red-900'
+                      : 'text-gray-900'
                 }`}>
                   {(file.size / 1024).toFixed(1)} KB
                 </div>
               </div>
               <div className={`rounded-xl p-4 ${
-                checkSpecRequirementMatch('format') 
+                checkSpecRequirementMatch('format').matches 
                   ? 'bg-green-50 border-2 border-green-300' 
-                  : 'bg-gray-50'
+                  : (checkSpecRequirementMatch('format').hasSelectedTactics && tacticCheck.unmatchedTactics.length > 0)
+                    ? 'bg-red-50 border-2 border-red-300'
+                    : 'bg-gray-50'
               }`}>
                 <div className={`text-xs font-medium uppercase tracking-wide mb-1 ${
-                  checkSpecRequirementMatch('format') 
+                  checkSpecRequirementMatch('format').matches 
                     ? 'text-green-700' 
-                    : 'text-gray-500'
+                    : (checkSpecRequirementMatch('format').hasSelectedTactics && tacticCheck.unmatchedTactics.length > 0)
+                      ? 'text-red-700'
+                      : 'text-gray-500'
                 }`}>
                   Format
-                  {checkSpecRequirementMatch('format') && (
+                  {checkSpecRequirementMatch('format').matches && (
                     <span className="ml-2 px-1 py-0.5 bg-green-600 text-white text-xs rounded">✓ MATCH</span>
+                  )}
+                  {(!checkSpecRequirementMatch('format').matches && checkSpecRequirementMatch('format').hasSelectedTactics && tacticCheck.unmatchedTactics.length > 0) && (
+                    <span className="ml-2 px-1 py-0.5 bg-red-600 text-white text-xs rounded">✗ NO MATCH</span>
                   )}
                 </div>
                 <div className={`text-lg font-bold ${
-                  checkSpecRequirementMatch('format') 
+                  checkSpecRequirementMatch('format').matches 
                     ? 'text-green-900' 
-                    : 'text-gray-900'
+                    : (checkSpecRequirementMatch('format').hasSelectedTactics && tacticCheck.unmatchedTactics.length > 0)
+                      ? 'text-red-900'
+                      : 'text-gray-900'
                 }`}>
                   {file.analysis.format}
                 </div>
               </div>
               <div className="bg-gray-50 rounded-xl p-4">
-                <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Orientation</div>
-                <div className="text-lg font-bold text-gray-900 capitalize">{file.analysis.orientation}</div>
+                <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                  {file.specCheck.isBannerAd ? 'Banner Type' : 'Orientation'}
+                </div>
+                <div className="text-lg font-bold text-gray-900">
+                  {file.specCheck.isBannerAd ? file.analysis.orientation : (
+                    <span className="capitalize">{file.analysis.orientation}</span>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Tactic Mismatch Warning */}
-            {selectedTactic !== 'all' && !tacticCheck.matches && (
-              <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-xl">
-                <div className="flex items-start">
-                  <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <AlertCircle className="w-4 h-4 text-white" />
+            {/* Tactic Match Status */}
+            {selectedTactics.length > 0 && (
+              <>
+                {tacticCheck.matchedTactics.length > 0 && (
+                  <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl">
+                    <div className="flex items-start">
+                      <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center mr-2 mt-0.5 flex-shrink-0">
+                        <Check className="w-3 h-3 text-white" />
+                      </div>
+                      <div>
+                        <span className="text-sm text-green-800">
+                          Matches: <strong>{tacticCheck.matchedTactics.join(', ')}</strong>
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <h5 className="font-semibold text-red-800 mb-1">Tactic Mismatch</h5>
-                    <p className="text-sm text-red-700">
-                      This creative does not match your selected tactic: <strong>{tacticCheck.tactic}</strong>
-                    </p>
+                )}
+                {tacticCheck.unmatchedTactics.length > 0 && (
+                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-xl">
+                    <div className="flex items-start">
+                      <AlertCircle className="w-5 h-5 text-yellow-600 mr-2 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <span className="text-sm text-yellow-800">
+                          Does not match: <strong>{tacticCheck.unmatchedTactics.join(', ')}</strong>
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                )}
+              </>
             )}
 
             {/* Spec Compliance */}
@@ -825,10 +1424,10 @@ const CreativeChecker = () => {
                   </div>
                   <div className="space-y-2 mb-4">
                     {file.specCheck.matches.map((match, idx) => {
-                      const isSelectedTactic = selectedTactic !== 'all' && (() => {
+                      const isSelectedTactic = selectedTactics.length > 0 && selectedTactics.some(tactic => {
                         const tacticMatchMap = {
-                          'ignite': ['Ignite Banner'],
-                          'amped': ['AMPed Banner'],
+                          'ignite': ['Ignite', 'Ignite Banner'],
+                          'amped': ['AMPed', 'AMPed Banner'],
                           'facebook': ['Facebook Social'],
                           'instagram': ['Instagram Social'],
                           'pinterest': ['Pinterest Social'],
@@ -848,12 +1447,12 @@ const CreativeChecker = () => {
                           'mobileBillboard': ['AMPed mobileBillboard'],
                           'takeover': ['AMPed takeover skin', 'AMPed takeover billboard']
                         };
-                        const expectedMatches = tacticMatchMap[selectedTactic] || [];
+                        const expectedMatches = tacticMatchMap[tactic] || [];
                         return expectedMatches.some(expectedMatch => 
                           match.toLowerCase().includes(expectedMatch.toLowerCase()) ||
                           expectedMatch.toLowerCase().includes(match.toLowerCase())
                         );
-                      })();
+                      });
                       return (
                         <div 
                           key={idx} 
@@ -999,6 +1598,23 @@ const CreativeChecker = () => {
                   <div className="text-xs text-gray-500">
                     Enter dimensions in WIDTHxHEIGHT format, separated by commas
                   </div>
+                  
+                  {/* Missing Standard Banner Sizes Alert */}
+                  {(() => {
+                    const standardBannerSizes = ['300x250', '728x90', '160x600', '336x280', '320x50', '300x50', '468x60', '120x600', '300x600'];
+                    const missingSizes = standardBannerSizes.filter(size => !editingSpecs.bannerAds.ignite.sizes.includes(size));
+                    return missingSizes.length > 0 && (
+                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-xl">
+                        <div className="flex items-start">
+                          <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
+                          <div>
+                            <div className="text-sm font-medium text-yellow-800">Missing Standard Banner Sizes:</div>
+                            <div className="text-xs text-yellow-700 mt-1">{missingSizes.join(', ')}</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -1029,6 +1645,23 @@ const CreativeChecker = () => {
                       placeholder="300x250, 728x90, 640x100..."
                     />
                   </label>
+                  
+                  {/* Missing Standard Banner Sizes Alert */}
+                  {(() => {
+                    const standardBannerSizes = ['300x250', '728x90', '160x600', '336x280', '320x50', '300x50', '468x60', '120x600', '300x600'];
+                    const missingSizes = standardBannerSizes.filter(size => !editingSpecs.bannerAds.amped.sizes.includes(size));
+                    return missingSizes.length > 0 && (
+                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-xl">
+                        <div className="flex items-start">
+                          <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
+                          <div>
+                            <div className="text-sm font-medium text-yellow-800">Missing Standard Banner Sizes:</div>
+                            <div className="text-xs text-yellow-700 mt-1">{missingSizes.join(', ')}</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
@@ -1119,10 +1752,24 @@ const CreativeChecker = () => {
                   <span>Clear All</span>
                 </button>
               )}
-              <div className="flex items-center space-x-2 text-sm text-gray-500">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <span>System Active</span>
-              </div>
+              {files.length > 0 && getFileCollections().length > 1 && (
+                <button 
+                  onClick={() => setShowCollectionManager(true)}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <Archive className="w-4 h-4" />
+                  <span>Manage Collections</span>
+                </button>
+              )}
+              {files.length > 0 && (
+                <button 
+                  onClick={downloadCreatives}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download All</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -1168,50 +1815,126 @@ const CreativeChecker = () => {
           <SpecsSettings />
         ) : (
           <div className="space-y-8">
-            {/* Tactic Selection */}
-            <div className="glass rounded-3xl p-6 shadow-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Select Target Tactic</h3>
-                  <p className="text-gray-600">Choose which tactic you want to validate your creatives against</p>
+            {/* Tactic Selection Dropdown */}
+            <div className="glass rounded-3xl p-6 shadow-lg relative z-50" style={{zIndex: 1000}}>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Select Target Tactics</h3>
+                <p className="text-gray-600 mb-4">Choose which tactics to validate your creatives against (select multiple)</p>
+                
+                <div className="relative z-50" ref={dropdownRef}>
+                  <button
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="w-full flex items-center justify-between p-4 bg-white border-2 border-gray-200 rounded-xl hover:border-[#cf0e0f] focus:border-[#cf0e0f] focus:ring-2 focus:ring-[#cf0e0f]/20 transition-all"
+                  >
+                    <div className="flex items-center space-x-2 flex-1 min-w-0">
+                      {selectedTactics.length === 0 ? (
+                        <span className="text-gray-500">Select tactics...</span>
+                      ) : (
+                        <div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
+                          {getSelectedTacticLabels().map((label, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center px-2 py-1 bg-[#cf0e0f]/10 text-[#cf0e0f] text-xs font-medium rounded-md"
+                            >
+                              {label}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const valueToRemove = selectedTactics[idx];
+                                  setSelectedTactics(selectedTactics.filter(t => t !== valueToRemove));
+                                }}
+                                className="ml-1 hover:bg-red-200 rounded-full p-0.5"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${
+                      isDropdownOpen ? 'rotate-180' : ''
+                    }`} />
+                  </button>
+
+                  {isDropdownOpen && (
+                    <div className="absolute z-[9999] w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-2xl max-h-80 overflow-hidden">
+                      <div className="p-3 border-b border-gray-200">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type="text"
+                            placeholder="Search tactics... (Ctrl+A: select all, Del: clear)"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#cf0e0f]/20 focus:border-[#cf0e0f]"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="max-h-64 overflow-y-auto">
+                        {searchTerm ? (
+                          // Show filtered results
+                          <div className="p-2">
+                            {filteredTactics.length > 0 ? (
+                              filteredTactics.map(tactic => (
+                                <label key={tactic.value} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedTactics.includes(tactic.value)}
+                                    onChange={() => toggleTactic(tactic.value)}
+                                    className="w-4 h-4 text-[#cf0e0f] focus:ring-[#cf0e0f] rounded"
+                                  />
+                                  <span className="text-sm font-medium text-gray-700">{tactic.label}</span>
+                                </label>
+                              ))
+                            ) : (
+                              <div className="p-4 text-center text-gray-500 text-sm">No tactics found</div>
+                            )}
+                          </div>
+                        ) : (
+                          // Show categorized results
+                          availableTactics.map(category => (
+                            <div key={category.category} className="p-2">
+                              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-2 py-2">
+                                {category.category}
+                              </div>
+                              {category.items.map(tactic => (
+                                <label key={tactic.value} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedTactics.includes(tactic.value)}
+                                    onChange={() => toggleTactic(tactic.value)}
+                                    className="w-4 h-4 text-[#cf0e0f] focus:ring-[#cf0e0f] rounded"
+                                  />
+                                  <span className="text-sm font-medium text-gray-700">{tactic.label}</span>
+                                </label>
+                              ))}
+                            </div>
+                          ))
+                        )}
+                      </div>
+
+                      {selectedTactics.length > 0 && (
+                        <div className="p-3 border-t border-gray-200 flex items-center justify-between bg-gray-50">
+                          <span className="text-sm text-gray-600 font-medium">
+                            {selectedTactics.length} selected
+                          </span>
+                          <button
+                            onClick={() => {
+                              setSelectedTactics([]);
+                              setIsDropdownOpen(false);
+                              setSearchTerm('');
+                            }}
+                            className="text-sm text-red-600 hover:text-red-700 font-medium"
+                          >
+                            Clear all
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <select
-                  value={selectedTactic}
-                  onChange={(e) => setSelectedTactic(e.target.value)}
-                  className="px-6 py-3 bg-white border-2 border-gray-200 rounded-xl font-semibold text-gray-700 focus:border-[#cf0e0f] focus:ring-2 focus:ring-[#cf0e0f]/20 transition-all"
-                >
-                  <option value="all">All Tactics</option>
-                  <optgroup label="Banner Ads">
-                    <option value="ignite">Ignite Banners</option>
-                    <option value="amped">AMPed Banners</option>
-                  </optgroup>
-                  <optgroup label="Social Media">
-                    <option value="facebook">Facebook</option>
-                    <option value="instagram">Instagram</option>
-                    <option value="pinterest">Pinterest</option>
-                    <option value="linkedin">LinkedIn</option>
-                    <option value="tiktok">TikTok</option>
-                    <option value="snapchat">Snapchat</option>
-                  </optgroup>
-                  <optgroup label="Video Platforms">
-                    <option value="stv">STV</option>
-                    <option value="hulu">Hulu</option>
-                    <option value="netflix">Netflix</option>
-                    <option value="liveSports">Live Sports</option>
-                  </optgroup>
-                  <optgroup label="Spark Creative">
-                    <option value="spark-landscape">Spark Landscape</option>
-                    <option value="spark-square">Spark Square</option>
-                    <option value="spark-portrait">Spark Portrait</option>
-                    <option value="spark-video">Spark Video</option>
-                  </optgroup>
-                  <optgroup label="AMPed Products">
-                    <option value="contentSponsorship">Content Sponsorship</option>
-                    <option value="listenLive">Listen Live</option>
-                    <option value="mobileBillboard">Mobile Billboard</option>
-                    <option value="takeover">Takeover</option>
-                  </optgroup>
-                </select>
               </div>
             </div>
             
@@ -1310,75 +2033,111 @@ const CreativeChecker = () => {
               </div>
             </div>
 
-            {/* Summary Stats and Actions */}
+            {/* Summary Stats */}
             {files.length > 0 && (
-              <div className="glass rounded-3xl p-8 shadow-xl">
-                <div className="flex items-center justify-between mb-8">
-                  <div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">Analysis Overview</h3>
-                    <p className="text-gray-600">Comprehensive analysis of your creative assets</p>
-                  </div>
-                  <div className="flex space-x-3">
-                    <button 
-                      onClick={downloadCSV}
-                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
-                    >
-                      <Download className="w-4 h-4" />
-                      <span>Export CSV</span>
-                    </button>
-                    <button 
-                      onClick={downloadResults}
-                      className="px-4 py-2 bg-[#cf0e0f] hover:bg-red-700 text-white rounded-xl font-semibold transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
-                    >
-                      <Download className="w-4 h-4" />
-                      <span>Export JSON</span>
-                    </button>
-                  </div>
-                </div>
+              <div className="glass rounded-2xl p-4 shadow-lg">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Analysis Overview</h3>
                 
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-                  <div className="text-center p-6 bg-gradient-to-r from-blue-50 to-blue-100 rounded-2xl">
-                    <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3">
-                      <FileText className="w-6 h-6 text-white" />
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="text-center p-3 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl">
+                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-2">
+                      <FileText className="w-4 h-4 text-white" />
                     </div>
-                    <div className="text-3xl font-bold text-blue-600 mb-1">{files.length}</div>
-                    <div className="text-sm font-medium text-blue-800">Total Files</div>
+                    <div className="text-xl font-bold text-blue-600">{files.length}</div>
+                    <div className="text-xs font-medium text-blue-800">Total Files</div>
                   </div>
-                  <div className="text-center p-6 bg-gradient-to-r from-green-50 to-green-100 rounded-2xl">
-                    <div className="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center mx-auto mb-3">
-                      <Check className="w-6 h-6 text-white" />
+                  
+                  {/* Smart Compliance Counter */}
+                  <div className="text-center p-3 bg-gradient-to-r from-green-50 to-green-100 rounded-xl">
+                    <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center mx-auto mb-2">
+                      <Check className="w-4 h-4 text-white" />
                     </div>
-                    <div className="text-3xl font-bold text-green-600 mb-1">
-                      {files.filter(f => f.specCheck.matches.length > 0).length}
+                    <div className="text-xl font-bold text-green-600">
+                      {(() => {
+                        if (selectedTactics.length === 0) {
+                          return files.filter(f => f.specCheck.matches.length > 0).length;
+                        } else {
+                          const tacticMatchMap = {
+                            'ignite': ['Ignite', 'Ignite Banner'],
+                            'amped': ['AMPed', 'AMPed Banner'],
+                            'facebook': ['Facebook Social'],
+                            'instagram': ['Instagram Social'],
+                            'pinterest': ['Pinterest Social'],
+                            'linkedin': ['Linkedin Social'],
+                            'tiktok': ['Tiktok Social'],
+                            'snapchat': ['Snapchat Social'],
+                            'stv': ['STV Video'],
+                            'hulu': ['HULU Video'],
+                            'netflix': ['NETFLIX Video'],
+                            'liveSports': ['LIVESPORTS Video'],
+                            'spark-landscape': ['Spark Landscape'],
+                            'spark-square': ['Spark Square'],
+                            'spark-portrait': ['Spark Portrait'],
+                            'spark-video': ['Spark Video'],
+                            'contentSponsorship': ['AMPed contentSponsorship headerDesktop', 'AMPed contentSponsorship headerMobile', 'AMPed contentSponsorship footerLogo'],
+                            'listenLive': ['AMPed listenLive skin', 'AMPed listenLive banners', 'AMPed listenLive preRoll'],
+                            'mobileBillboard': ['AMPed mobileBillboard'],
+                            'takeover': ['AMPed takeover skin', 'AMPed takeover billboard']
+                          };
+                          
+                          return files.filter(file => {
+                            return selectedTactics.some(tactic => {
+                              const expectedMatches = tacticMatchMap[tactic] || [];
+                              return file.specCheck.matches.some(match => 
+                                expectedMatches.some(expectedMatch => 
+                                  match.toLowerCase().includes(expectedMatch.toLowerCase()) ||
+                                  expectedMatch.toLowerCase().includes(match.toLowerCase())
+                                )
+                              );
+                            });
+                          }).length;
+                        }
+                      })()
+                      }
                     </div>
-                    <div className="text-sm font-medium text-green-800">Spec Compliant</div>
+                    <div className="text-xs font-medium text-green-800">
+                      {selectedTactics.length === 0 ? 'Spec Compliant' : 'Tactic Matches'}
+                    </div>
                   </div>
-                  <div className="text-center p-6 bg-gradient-to-r from-purple-50 to-purple-100 rounded-2xl">
-                    <div className="w-12 h-12 bg-purple-600 rounded-xl flex items-center justify-center mx-auto mb-3">
-                      <Image className="w-6 h-6 text-white" />
+                  
+                  <div className="text-center p-3 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl">
+                    <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center mx-auto mb-2">
+                      <Image className="w-4 h-4 text-white" />
                     </div>
-                    <div className="text-3xl font-bold text-purple-600 mb-1">
+                    <div className="text-xl font-bold text-purple-600">
                       {files.filter(f => f.type.startsWith('image/')).length}
                     </div>
-                    <div className="text-sm font-medium text-purple-800">Images</div>
+                    <div className="text-xs font-medium text-purple-800">Images</div>
                   </div>
-                  <div className="text-center p-6 bg-gradient-to-r from-orange-50 to-orange-100 rounded-2xl">
-                    <div className="w-12 h-12 bg-orange-600 rounded-xl flex items-center justify-center mx-auto mb-3">
-                      <Video className="w-6 h-6 text-white" />
+                  <div className="text-center p-3 bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl">
+                    <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center mx-auto mb-2">
+                      <Video className="w-4 h-4 text-white" />
                     </div>
-                    <div className="text-3xl font-bold text-orange-600 mb-1">
+                    <div className="text-xl font-bold text-orange-600">
                       {files.filter(f => f.type.startsWith('video/')).length}
                     </div>
-                    <div className="text-sm font-medium text-orange-800">Videos</div>
+                    <div className="text-xs font-medium text-orange-800">Videos</div>
                   </div>
-                  <div className="text-center p-6 bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-2xl">
-                    <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-3">
-                      <Archive className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="text-3xl font-bold text-indigo-600 mb-1">
-                      {files.filter(f => f.isFromZip).length}
-                    </div>
-                    <div className="text-sm font-medium text-indigo-800">From Archives</div>
+                </div>
+              </div>
+            )}
+
+            {/* File Sorting Controls */}
+            {files.length > 0 && (
+              <div className="glass rounded-2xl p-4 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-900">File Organization</h3>
+                  <div className="flex items-center space-x-3">
+                    <span className="text-sm text-gray-600">Sort by:</span>
+                    <select
+                      value={fileSortOrder}
+                      onChange={(e) => setFileSortOrder(e.target.value)}
+                      className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#cf0e0f] focus:border-[#cf0e0f]"
+                    >
+                      <option value="default">Upload Order</option>
+                      <option value="compliant-first">Compliant First</option>
+                      <option value="non-compliant-first">Non-Compliant First</option>
+                    </select>
                   </div>
                 </div>
               </div>
@@ -1387,9 +2146,175 @@ const CreativeChecker = () => {
             {/* Files Grid */}
             {files.length > 0 && (
               <div className="space-y-6">
-                {files.map(file => (
-                  <FileCard key={file.id} file={file} />
-                ))}
+                {(() => {
+                  let sortedFiles = [...files];
+                  
+                  if (fileSortOrder === 'compliant-first') {
+                    sortedFiles.sort((a, b) => {
+                      const aTacticCheck = selectedTactics.length === 0 ? 
+                        { matches: a.specCheck.matches.length > 0 } :
+                        (() => {
+                          const tacticMatchMap = {
+                            'ignite': ['Ignite', 'Ignite Banner'],
+                            'amped': ['AMPed', 'AMPed Banner'],
+                            'facebook': ['Facebook Social'],
+                            'instagram': ['Instagram Social'],
+                            'pinterest': ['Pinterest Social'],
+                            'linkedin': ['Linkedin Social'],
+                            'tiktok': ['Tiktok Social'],
+                            'snapchat': ['Snapchat Social'],
+                            'stv': ['STV Video'],
+                            'hulu': ['HULU Video'],
+                            'netflix': ['NETFLIX Video'],
+                            'liveSports': ['LIVESPORTS Video'],
+                            'spark-landscape': ['Spark Landscape'],
+                            'spark-square': ['Spark Square'],
+                            'spark-portrait': ['Spark Portrait'],
+                            'spark-video': ['Spark Video'],
+                            'contentSponsorship': ['AMPed contentSponsorship headerDesktop', 'AMPed contentSponsorship headerMobile', 'AMPed contentSponsorship footerLogo'],
+                            'listenLive': ['AMPed listenLive skin', 'AMPed listenLive banners', 'AMPed listenLive preRoll'],
+                            'mobileBillboard': ['AMPed mobileBillboard'],
+                            'takeover': ['AMPed takeover skin', 'AMPed takeover billboard']
+                          };
+                          const matchedTactics = selectedTactics.filter(tactic => {
+                            const expectedMatches = tacticMatchMap[tactic] || [];
+                            return a.specCheck.matches.some(match => 
+                              expectedMatches.some(expectedMatch => 
+                                match.toLowerCase().includes(expectedMatch.toLowerCase()) ||
+                                expectedMatch.toLowerCase().includes(match.toLowerCase())
+                              )
+                            );
+                          });
+                          return { matches: matchedTactics.length > 0 };
+                        })();
+                      
+                      const bTacticCheck = selectedTactics.length === 0 ? 
+                        { matches: b.specCheck.matches.length > 0 } :
+                        (() => {
+                          const tacticMatchMap = {
+                            'ignite': ['Ignite', 'Ignite Banner'],
+                            'amped': ['AMPed', 'AMPed Banner'],
+                            'facebook': ['Facebook Social'],
+                            'instagram': ['Instagram Social'],
+                            'pinterest': ['Pinterest Social'],
+                            'linkedin': ['Linkedin Social'],
+                            'tiktok': ['Tiktok Social'],
+                            'snapchat': ['Snapchat Social'],
+                            'stv': ['STV Video'],
+                            'hulu': ['HULU Video'],
+                            'netflix': ['NETFLIX Video'],
+                            'liveSports': ['LIVESPORTS Video'],
+                            'spark-landscape': ['Spark Landscape'],
+                            'spark-square': ['Spark Square'],
+                            'spark-portrait': ['Spark Portrait'],
+                            'spark-video': ['Spark Video'],
+                            'contentSponsorship': ['AMPed contentSponsorship headerDesktop', 'AMPed contentSponsorship headerMobile', 'AMPed contentSponsorship footerLogo'],
+                            'listenLive': ['AMPed listenLive skin', 'AMPed listenLive banners', 'AMPed listenLive preRoll'],
+                            'mobileBillboard': ['AMPed mobileBillboard'],
+                            'takeover': ['AMPed takeover skin', 'AMPed takeover billboard']
+                          };
+                          const matchedTactics = selectedTactics.filter(tactic => {
+                            const expectedMatches = tacticMatchMap[tactic] || [];
+                            return b.specCheck.matches.some(match => 
+                              expectedMatches.some(expectedMatch => 
+                                match.toLowerCase().includes(expectedMatch.toLowerCase()) ||
+                                expectedMatch.toLowerCase().includes(match.toLowerCase())
+                              )
+                            );
+                          });
+                          return { matches: matchedTactics.length > 0 };
+                        })();
+                      
+                      if (aTacticCheck.matches && !bTacticCheck.matches) return -1;
+                      if (!aTacticCheck.matches && bTacticCheck.matches) return 1;
+                      return 0;
+                    });
+                  } else if (fileSortOrder === 'non-compliant-first') {
+                    sortedFiles.sort((a, b) => {
+                      const aTacticCheck = selectedTactics.length === 0 ? 
+                        { matches: a.specCheck.matches.length > 0 } :
+                        (() => {
+                          const tacticMatchMap = {
+                            'ignite': ['Ignite', 'Ignite Banner'],
+                            'amped': ['AMPed', 'AMPed Banner'],
+                            'facebook': ['Facebook Social'],
+                            'instagram': ['Instagram Social'],
+                            'pinterest': ['Pinterest Social'],
+                            'linkedin': ['Linkedin Social'],
+                            'tiktok': ['Tiktok Social'],
+                            'snapchat': ['Snapchat Social'],
+                            'stv': ['STV Video'],
+                            'hulu': ['HULU Video'],
+                            'netflix': ['NETFLIX Video'],
+                            'liveSports': ['LIVESPORTS Video'],
+                            'spark-landscape': ['Spark Landscape'],
+                            'spark-square': ['Spark Square'],
+                            'spark-portrait': ['Spark Portrait'],
+                            'spark-video': ['Spark Video'],
+                            'contentSponsorship': ['AMPed contentSponsorship headerDesktop', 'AMPed contentSponsorship headerMobile', 'AMPed contentSponsorship footerLogo'],
+                            'listenLive': ['AMPed listenLive skin', 'AMPed listenLive banners', 'AMPed listenLive preRoll'],
+                            'mobileBillboard': ['AMPed mobileBillboard'],
+                            'takeover': ['AMPed takeover skin', 'AMPed takeover billboard']
+                          };
+                          const matchedTactics = selectedTactics.filter(tactic => {
+                            const expectedMatches = tacticMatchMap[tactic] || [];
+                            return a.specCheck.matches.some(match => 
+                              expectedMatches.some(expectedMatch => 
+                                match.toLowerCase().includes(expectedMatch.toLowerCase()) ||
+                                expectedMatch.toLowerCase().includes(match.toLowerCase())
+                              )
+                            );
+                          });
+                          return { matches: matchedTactics.length > 0 };
+                        })();
+                      
+                      const bTacticCheck = selectedTactics.length === 0 ? 
+                        { matches: b.specCheck.matches.length > 0 } :
+                        (() => {
+                          const tacticMatchMap = {
+                            'ignite': ['Ignite', 'Ignite Banner'],
+                            'amped': ['AMPed', 'AMPed Banner'],
+                            'facebook': ['Facebook Social'],
+                            'instagram': ['Instagram Social'],
+                            'pinterest': ['Pinterest Social'],
+                            'linkedin': ['Linkedin Social'],
+                            'tiktok': ['Tiktok Social'],
+                            'snapchat': ['Snapchat Social'],
+                            'stv': ['STV Video'],
+                            'hulu': ['HULU Video'],
+                            'netflix': ['NETFLIX Video'],
+                            'liveSports': ['LIVESPORTS Video'],
+                            'spark-landscape': ['Spark Landscape'],
+                            'spark-square': ['Spark Square'],
+                            'spark-portrait': ['Spark Portrait'],
+                            'spark-video': ['Spark Video'],
+                            'contentSponsorship': ['AMPed contentSponsorship headerDesktop', 'AMPed contentSponsorship headerMobile', 'AMPed contentSponsorship footerLogo'],
+                            'listenLive': ['AMPed listenLive skin', 'AMPed listenLive banners', 'AMPed listenLive preRoll'],
+                            'mobileBillboard': ['AMPed mobileBillboard'],
+                            'takeover': ['AMPed takeover skin', 'AMPed takeover billboard']
+                          };
+                          const matchedTactics = selectedTactics.filter(tactic => {
+                            const expectedMatches = tacticMatchMap[tactic] || [];
+                            return b.specCheck.matches.some(match => 
+                              expectedMatches.some(expectedMatch => 
+                                match.toLowerCase().includes(expectedMatch.toLowerCase()) ||
+                                expectedMatch.toLowerCase().includes(match.toLowerCase())
+                              )
+                            );
+                          });
+                          return { matches: matchedTactics.length > 0 };
+                        })();
+                      
+                      if (!aTacticCheck.matches && bTacticCheck.matches) return -1;
+                      if (aTacticCheck.matches && !bTacticCheck.matches) return 1;
+                      return 0;
+                    });
+                  }
+                  
+                  return sortedFiles.map(file => (
+                    <FileCard key={file.id} file={file} />
+                  ));
+                })()}
               </div>
             )}
 
@@ -1417,6 +2342,32 @@ const CreativeChecker = () => {
           </div>
         )}
       </div>
+
+      {/* Collection Manager Modal */}
+      {showCollectionManager && <CollectionManager />}
+
+      {/* Lightbox Modal */}
+      {lightboxImage && (
+        <div 
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+          onClick={() => setLightboxImage(null)}
+        >
+          <div className="relative max-w-7xl max-h-full">
+            <button
+              onClick={() => setLightboxImage(null)}
+              className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors"
+            >
+              <X className="w-8 h-8" />
+            </button>
+            <img
+              src={lightboxImage}
+              alt="Full size preview"
+              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

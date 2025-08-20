@@ -939,25 +939,25 @@ const CreativeChecker = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-white/20 sticky top-0 z-50">
+      <div className="bg-accent-600 dark:bg-accent-700 sticky top-0 z-50 text-white">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-[#cf0e0f] to-red-700 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-accent-500 rounded-xl flex items-center justify-center">
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                <h1 className="text-2xl font-bold text-white">
                   Creative Specs Validator
                 </h1>
-                <p className="text-sm text-gray-500">Professional creative asset validation & analysis</p>
+                <p className="text-sm text-white/80">Professional creative asset validation & analysis</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-sm text-gray-500">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <div className="flex items-center space-x-2 text-sm text-white/80">
+                <div className="w-2 h-2 bg-accent-400 rounded-full animate-pulse"></div>
                 <span>System Active</span>
               </div>
             </div>
@@ -1175,48 +1175,48 @@ const CreativeChecker = () => {
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-                  <div className="text-center p-6 bg-gradient-to-r from-blue-50 to-blue-100 rounded-2xl">
-                    <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <div className="text-center p-6 bg-gray-100 dark:bg-gray-800 rounded-2xl">
+                    <div className="w-12 h-12 bg-accent-600 rounded-xl flex items-center justify-center mx-auto mb-3">
                       <FileText className="w-6 h-6 text-white" />
                     </div>
-                    <div className="text-3xl font-bold text-blue-600 mb-1">{files.length}</div>
-                    <div className="text-sm font-medium text-blue-800">Total Files</div>
+                    <div className="text-3xl font-bold text-accent-600 mb-1">{files.length}</div>
+                    <div className="text-sm font-medium text-accent-400">Total Files</div>
                   </div>
-                  <div className="text-center p-6 bg-gradient-to-r from-green-50 to-green-100 rounded-2xl">
-                    <div className="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <div className="text-center p-6 bg-gray-100 dark:bg-gray-800 rounded-2xl">
+                    <div className="w-12 h-12 bg-accent-600 rounded-xl flex items-center justify-center mx-auto mb-3">
                       <Check className="w-6 h-6 text-white" />
                     </div>
-                    <div className="text-3xl font-bold text-green-600 mb-1">
+                    <div className="text-3xl font-bold text-accent-600 mb-1">
                       {files.filter(f => f.specCheck.matches.length > 0).length}
                     </div>
-                    <div className="text-sm font-medium text-green-800">Spec Compliant</div>
+                    <div className="text-sm font-medium text-accent-400">Spec Compliant</div>
                   </div>
-                  <div className="text-center p-6 bg-gradient-to-r from-purple-50 to-purple-100 rounded-2xl">
-                    <div className="w-12 h-12 bg-purple-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <div className="text-center p-6 bg-gray-100 dark:bg-gray-800 rounded-2xl">
+                    <div className="w-12 h-12 bg-accent-600 rounded-xl flex items-center justify-center mx-auto mb-3">
                       <Image className="w-6 h-6 text-white" />
                     </div>
-                    <div className="text-3xl font-bold text-purple-600 mb-1">
+                    <div className="text-3xl font-bold text-accent-600 mb-1">
                       {files.filter(f => f.type.startsWith('image/')).length}
                     </div>
-                    <div className="text-sm font-medium text-purple-800">Images</div>
+                    <div className="text-sm font-medium text-accent-400">Images</div>
                   </div>
-                  <div className="text-center p-6 bg-gradient-to-r from-orange-50 to-orange-100 rounded-2xl">
-                    <div className="w-12 h-12 bg-orange-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <div className="text-center p-6 bg-gray-100 dark:bg-gray-800 rounded-2xl">
+                    <div className="w-12 h-12 bg-accent-600 rounded-xl flex items-center justify-center mx-auto mb-3">
                       <Video className="w-6 h-6 text-white" />
                     </div>
-                    <div className="text-3xl font-bold text-orange-600 mb-1">
+                    <div className="text-3xl font-bold text-accent-600 mb-1">
                       {files.filter(f => f.type.startsWith('video/')).length}
                     </div>
-                    <div className="text-sm font-medium text-orange-800">Videos</div>
+                    <div className="text-sm font-medium text-accent-400">Videos</div>
                   </div>
-                  <div className="text-center p-6 bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-2xl">
-                    <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <div className="text-center p-6 bg-gray-100 dark:bg-gray-800 rounded-2xl">
+                    <div className="w-12 h-12 bg-accent-600 rounded-xl flex items-center justify-center mx-auto mb-3">
                       <Archive className="w-6 h-6 text-white" />
                     </div>
-                    <div className="text-3xl font-bold text-indigo-600 mb-1">
+                    <div className="text-3xl font-bold text-accent-600 mb-1">
                       {files.filter(f => f.isFromZip).length}
                     </div>
-                    <div className="text-sm font-medium text-indigo-800">From Archives</div>
+                    <div className="text-sm font-medium text-accent-400">From Archives</div>
                   </div>
                 </div>
               </div>

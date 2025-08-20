@@ -1,9 +1,10 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { 
-  Upload, FileText, Image, Video, Settings, Download, Check, AlertCircle, 
+import {
+  Upload, FileText, Image, Video, Settings, Download, Check, AlertCircle,
   Trash2, Edit2, Save, Archive, Sparkles
 } from 'lucide-react';
 import JSZip from 'jszip';
+import FileTable from './components/FileTable';
 
 const CreativeChecker = () => {
   const [files, setFiles] = useState([]);
@@ -12,6 +13,7 @@ const CreativeChecker = () => {
   const [processingStatus, setProcessingStatus] = useState('');
   const [activeTab, setActiveTab] = useState('upload');
   const [selectedTactic, setSelectedTactic] = useState('all');
+  const [viewMode, setViewMode] = useState('cards');
   const [specs, setSpecs] = useState({
     bannerAds: {
       ignite: {
@@ -1224,11 +1226,34 @@ const CreativeChecker = () => {
 
             {/* Files Grid */}
             {files.length > 0 && (
-              <div className="space-y-6">
-                {files.map(file => (
-                  <FileCard key={file.id} file={file} />
-                ))}
-              </div>
+              <>
+                <div className="flex justify-end mb-4">
+                  <div className="inline-flex rounded-lg shadow-sm" role="group">
+                    <button
+                      onClick={() => setViewMode('cards')}
+                      className={`px-4 py-2 text-sm font-medium border rounded-l-lg ${viewMode === 'cards' ? 'bg-[#cf0e0f] text-white border-[#cf0e0f]' : 'bg-white text-gray-700 border-gray-300'}`}
+                    >
+                      Cards
+                    </button>
+                    <button
+                      onClick={() => setViewMode('table')}
+                      className={`px-4 py-2 text-sm font-medium border rounded-r-lg ${viewMode === 'table' ? 'bg-[#cf0e0f] text-white border-[#cf0e0f]' : 'bg-white text-gray-700 border-gray-300'}`}
+                    >
+                      Table
+                    </button>
+                  </div>
+                </div>
+
+                {viewMode === 'cards' ? (
+                  <div className="space-y-6">
+                    {files.map(file => (
+                      <FileCard key={file.id} file={file} />
+                    ))}
+                  </div>
+                ) : (
+                  <FileTable files={files} />
+                )}
+              </>
             )}
 
             {files.length === 0 && !isProcessing && (

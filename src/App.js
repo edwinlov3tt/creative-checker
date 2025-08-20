@@ -1,7 +1,7 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { 
-  Upload, FileText, Image, Video, Settings, Download, Check, AlertCircle, 
-  Trash2, Edit2, Save, Archive, Sparkles
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import {
+  Upload, FileText, Image, Video, Settings, Download, Check, AlertCircle,
+  Trash2, Edit2, Save, Archive, Sparkles, Sun, Moon
 } from 'lucide-react';
 import JSZip from 'jszip';
 
@@ -11,6 +11,7 @@ const CreativeChecker = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStatus, setProcessingStatus] = useState('');
   const [activeTab, setActiveTab] = useState('upload');
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
   const [selectedTactic, setSelectedTactic] = useState('all');
   const [specs, setSpecs] = useState({
     bannerAds: {
@@ -72,6 +73,12 @@ const CreativeChecker = () => {
   });
   
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    localStorage.setItem('theme', darkMode ? 'dark' : 'light');
+  }, [darkMode]);
+
+  const toggleDarkMode = () => setDarkMode(!darkMode);
 
   // Enhanced AI analysis function
   const analyzeCreative = useCallback((file, dimensions) => {
@@ -548,14 +555,14 @@ const CreativeChecker = () => {
     };
 
     return (
-      <div className="group bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-6 shadow-lg hover:shadow-xl transition-all duration-300">
+      <div className="group bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-6 shadow-lg hover:shadow-xl transition-all duration-300 dark:bg-gray-800/80 dark:border-gray-700/50">
         {/* Header */}
         <div className="flex items-start justify-between mb-6">
           <div className="flex items-center space-x-3 flex-1">
             <div className={`p-3 rounded-xl ${
               file.type.startsWith('image/') ? 'bg-blue-100 text-blue-600' :
               file.type.startsWith('video/') ? 'bg-purple-100 text-purple-600' :
-              'bg-gray-100 text-gray-600'
+              'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
             }`}>
               {file.type.startsWith('image/') ? <Image className="w-6 h-6" /> :
                file.type.startsWith('video/') ? <Video className="w-6 h-6" /> :
@@ -569,7 +576,7 @@ const CreativeChecker = () => {
                     type="text"
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#cf0e0f] focus:border-transparent"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#cf0e0f] focus:border-transparent dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
                   />
                   <button onClick={handleSaveName} className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors">
                     <Save className="w-4 h-4" />
@@ -578,7 +585,7 @@ const CreativeChecker = () => {
               ) : (
                 <div>
                   <div className="flex items-center space-x-2">
-                    <h4 className="font-semibold text-gray-900 truncate">{file.displayName}</h4>
+                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 truncate">{file.displayName}</h4>
                     {file.isFromZip && (
                       <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded-full flex items-center space-x-1">
                         <Archive className="w-3 h-3" />
@@ -587,7 +594,7 @@ const CreativeChecker = () => {
                     )}
                   </div>
                   {file.isFromZip && (
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       Extracted from {file.zipSource}
                       {files.filter(f => f.zipSource === file.zipSource).length > 1 && 
                         ` • ${files.filter(f => f.zipSource === file.zipSource).length} files total`
@@ -601,7 +608,7 @@ const CreativeChecker = () => {
             {!isEditing && (
               <button 
                 onClick={() => setIsEditing(true)} 
-                className="opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
+                className="opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all dark:text-gray-500 dark:hover:text-gray-300 dark:hover:bg-gray-700"
               >
                 <Edit2 className="w-4 h-4" />
               </button>
@@ -610,7 +617,7 @@ const CreativeChecker = () => {
           
           <button 
             onClick={() => removeFile(file.id)} 
-            className="opacity-0 group-hover:opacity-100 p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+            className="opacity-0 group-hover:opacity-100 p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all dark:hover:bg-red-900"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -939,9 +946,10 @@ const CreativeChecker = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className={darkMode ? 'dark' : ''}>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-gray-900 dark:to-gray-950">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-white/20 sticky top-0 z-50">
+      <div className="bg-white/80 backdrop-blur-sm border-b border-white/20 dark:bg-gray-900/80 dark:border-gray-700 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -949,17 +957,28 @@ const CreativeChecker = () => {
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
                   Creative Specs Validator
                 </h1>
-                <p className="text-sm text-gray-500">Professional creative asset validation & analysis</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Professional creative asset validation & analysis</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                 <span>System Active</span>
               </div>
+              <button
+                onClick={toggleDarkMode}
+                className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
+                aria-label="Toggle dark mode"
+              >
+                {darkMode ? (
+                  <Sun className="w-5 h-5 text-yellow-400" />
+                ) : (
+                  <Moon className="w-5 h-5 text-gray-800" />
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -977,24 +996,24 @@ const CreativeChecker = () => {
               key={id}
               onClick={() => setActiveTab(id)}
               className={`group relative px-6 py-4 rounded-2xl flex items-center space-x-3 transition-all duration-200 ${
-                activeTab === id 
-                  ? 'bg-gradient-to-r from-[#cf0e0f] to-red-700 text-white shadow-lg shadow-red-500/25 scale-105' 
-                  : 'bg-white/70 text-gray-600 hover:bg-white hover:shadow-md backdrop-blur-sm'
+                activeTab === id
+                  ? 'bg-gradient-to-r from-[#cf0e0f] to-red-700 text-white shadow-lg shadow-red-500/25 scale-105'
+                  : 'bg-white/70 text-gray-600 hover:bg-white hover:shadow-md backdrop-blur-sm dark:bg-gray-800/70 dark:text-gray-300 dark:hover:bg-gray-700'
               }`}
             >
               <div className={`p-2 rounded-lg ${
-                activeTab === id 
-                  ? 'bg-white/20' 
-                  : 'bg-gray-100 group-hover:bg-gray-200'
+                activeTab === id
+                  ? 'bg-white/20'
+                  : 'bg-gray-100 group-hover:bg-gray-200 dark:bg-gray-700 dark:group-hover:bg-gray-600'
               }`}>
                 <Icon className="w-5 h-5" />
               </div>
               <div className="text-left">
                 <div className="font-semibold">{label}</div>
                 <div className={`text-xs ${
-                  activeTab === id 
-                    ? 'text-blue-100' 
-                    : 'text-gray-500'
+                  activeTab === id
+                    ? 'text-blue-100'
+                    : 'text-gray-500 dark:text-gray-400'
                 }`}>{description}</div>
               </div>
             </button>
@@ -1006,16 +1025,16 @@ const CreativeChecker = () => {
         ) : (
           <div className="space-y-8">
             {/* Tactic Selection */}
-            <div className="glass rounded-3xl p-6 shadow-lg">
+            <div className="glass rounded-3xl p-6 shadow-lg dark:bg-gray-800">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Select Target Tactic</h3>
-                  <p className="text-gray-600">Choose which tactic you want to validate your creatives against</p>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Select Target Tactic</h3>
+                  <p className="text-gray-600 dark:text-gray-300">Choose which tactic you want to validate your creatives against</p>
                 </div>
                 <select
                   value={selectedTactic}
                   onChange={(e) => setSelectedTactic(e.target.value)}
-                  className="px-6 py-3 bg-white border-2 border-gray-200 rounded-xl font-semibold text-gray-700 focus:border-[#cf0e0f] focus:ring-2 focus:ring-[#cf0e0f]/20 transition-all"
+                  className="px-6 py-3 bg-white border-2 border-gray-200 rounded-xl font-semibold text-gray-700 focus:border-[#cf0e0f] focus:ring-2 focus:ring-[#cf0e0f]/20 transition-all dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                 >
                   <option value="all">All Tactics</option>
                   <optgroup label="Banner Ads">
@@ -1056,9 +1075,9 @@ const CreativeChecker = () => {
             <div className="relative">
               <div
                 className={`relative border-2 border-dashed rounded-3xl p-12 text-center transition-all duration-300 ${
-                  isDragging 
-                    ? 'border-[#cf0e0f] bg-gradient-to-r from-red-50 to-pink-50 scale-102 shadow-xl' 
-                    : 'border-gray-300 bg-white/50 hover:bg-white/70 backdrop-blur-sm'
+                  isDragging
+                    ? 'border-[#cf0e0f] bg-gradient-to-r from-red-50 to-pink-50 scale-102 shadow-xl'
+                    : 'border-gray-300 bg-white/50 hover:bg-white/70 backdrop-blur-sm dark:border-gray-600 dark:bg-gray-800/50 dark:hover:bg-gray-800/70'
                 }`}
                 onDrop={handleDrop}
                 onDragOver={(e) => e.preventDefault()}
@@ -1233,17 +1252,17 @@ const CreativeChecker = () => {
 
             {files.length === 0 && !isProcessing && (
               <div className="text-center py-16">
-                <div className="w-24 h-24 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
+                <div className="w-24 h-24 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-full flex items-center justify-center mx-auto mb-6">
                   <FileText className="w-12 h-12 text-gray-400" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">Ready to Validate Your Creatives</h3>
-                <p className="text-gray-600 max-w-md mx-auto leading-relaxed">
-                  Upload individual creative files or ZIP archives to get started with comprehensive 
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">Ready to Validate Your Creatives</h3>
+                <p className="text-gray-600 dark:text-gray-300 max-w-md mx-auto leading-relaxed">
+                  Upload individual creative files or ZIP archives to get started with comprehensive
                   specification checking and AI-powered analysis.
                 </p>
-                <div className="mt-8 p-6 bg-blue-50 rounded-2xl border border-blue-100 max-w-md mx-auto">
-                  <div className="text-sm text-blue-800 font-medium mb-2">✨ What you'll get:</div>
-                  <ul className="text-sm text-blue-700 space-y-1">
+                <div className="mt-8 p-6 bg-blue-50 dark:bg-blue-900 rounded-2xl border border-blue-100 dark:border-blue-700 max-w-md mx-auto">
+                  <div className="text-sm text-blue-800 dark:text-blue-300 font-medium mb-2">✨ What you'll get:</div>
+                  <ul className="text-sm text-blue-700 dark:text-blue-200 space-y-1">
                     <li>• Platform compliance validation</li>
                     <li>• AI-powered quality assessment</li>
                     <li>• Automated dimension checking</li>
@@ -1256,7 +1275,8 @@ const CreativeChecker = () => {
         )}
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default CreativeChecker;

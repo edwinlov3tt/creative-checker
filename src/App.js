@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { 
   Upload, FileText, Image, Video, Settings, Download, Check, AlertCircle, 
-  Trash2, Edit2, Save, Archive, Sparkles
+  Trash2, Edit2, Save, Archive, Sparkles, Plus, Minus
 } from 'lucide-react';
 import JSZip from 'jszip';
 
@@ -17,11 +17,24 @@ const CreativeChecker = () => {
       ignite: {
         sizes: ['728x90', '300x250', '160x600', '300x600', '320x50'],
         maxSize: { default: 200, mobile: 150 },
-        requirements: ['1px contrasting border', 'high-quality save']
+        requirements: ['1px contrasting border', 'high-quality save'],
+        sizeRequirements: {
+          '728x90': { maxSizeKB: 200 },
+          '300x250': { maxSizeKB: 200 },
+          '160x600': { maxSizeKB: 200 },
+          '300x600': { maxSizeKB: 200 },
+          '320x50': { maxSizeKB: 150 }
+        }
       },
       amped: {
         sizes: ['300x250', '728x90', '640x100', '320x50'],
-        maxSize: { default: 200 }
+        maxSize: { default: 200 },
+        sizeRequirements: {
+          '300x250': { maxSizeKB: 200 },
+          '728x90': { maxSizeKB: 200 },
+          '640x100': { maxSizeKB: 200 },
+          '320x50': { maxSizeKB: 150 }
+        }
       }
     },
     social: {
@@ -171,16 +184,19 @@ const CreativeChecker = () => {
     if (specs.bannerAds.ignite.sizes.includes(dimensionString)) {
       matches.push('Ignite Banner');
       category = 'Banner Ads';
-      if (dimensionString === '320x50' && fileSizeKB > specs.bannerAds.ignite.maxSize.mobile) {
-        warnings.push(`File size exceeds ${specs.bannerAds.ignite.maxSize.mobile}KB limit for mobile banners`);
-      } else if (fileSizeKB > specs.bannerAds.ignite.maxSize.default) {
-        warnings.push(`File size exceeds ${specs.bannerAds.ignite.maxSize.default}KB limit`);
+      const sizeReq = specs.bannerAds.ignite.sizeRequirements[dimensionString];
+      if (sizeReq && fileSizeKB > sizeReq.maxSizeKB) {
+        warnings.push(`File size exceeds ${sizeReq.maxSizeKB}KB limit for ${dimensionString} Ignite banners`);
       }
     }
     
     if (specs.bannerAds.amped.sizes.includes(dimensionString)) {
       matches.push('AMPed Banner');
       category = 'Banner Ads';
+      const sizeReq = specs.bannerAds.amped.sizeRequirements[dimensionString];
+      if (sizeReq && fileSizeKB > sizeReq.maxSizeKB) {
+        warnings.push(`File size exceeds ${sizeReq.maxSizeKB}KB limit for ${dimensionString} AMPed banners`);
+      }
     }
 
     // Check social media specs
@@ -476,6 +492,7 @@ const CreativeChecker = () => {
   const FileCard = ({ file }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editName, setEditName] = useState(file.displayName);
+    const [isCollapsed, setIsCollapsed] = useState(false);
     
     // Check if file matches selected tactic
     const checkTacticMatch = () => {
@@ -540,6 +557,32 @@ const CreativeChecker = () => {
       return { matches, tactic: tacticDisplayNames[selectedTactic] };
     };
     
+    // Check if specific spec requirements match selected tactic
+    const checkSpecRequirementMatch = (type) => {
+      if (selectedTactic === 'all') return false;
+      
+      const dimensionString = `${file.dimensions.width}x${file.dimensions.height}`;
+      const fileSizeKB = file.size / 1024;
+      const fileExtension = file.analysis.format.toLowerCase();
+      
+      // Check if this file matches the selected tactic specs
+      if ((selectedTactic === 'ignite' && file.specCheck.matches.includes('Ignite Banner')) ||
+          (selectedTactic === 'amped' && file.specCheck.matches.includes('AMPed Banner'))) {
+        
+        if (type === 'dimensions') {
+          return specs.bannerAds[selectedTactic]?.sizes.includes(dimensionString);
+        } else if (type === 'fileSize') {
+          const sizeReq = specs.bannerAds[selectedTactic]?.sizeRequirements[dimensionString];
+          return sizeReq && fileSizeKB <= sizeReq.maxSizeKB;
+        } else if (type === 'format') {
+          return ['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension);
+        }
+      }
+      
+      // Add similar checks for other tactics
+      return false;
+    };
+    
     const tacticCheck = checkTacticMatch();
 
     const handleSaveName = () => {
@@ -578,7 +621,9 @@ const CreativeChecker = () => {
               ) : (
                 <div>
                   <div className="flex items-center space-x-2">
-                    <h4 className="font-semibold text-gray-900 truncate">{file.displayName}</h4>
+                    <h4 className="font-semibold text-gray-900 truncate">
+                      {file.displayName.split('/').pop()}
+                    </h4>
                     {file.isFromZip && (
                       <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded-full flex items-center space-x-1">
                         <Archive className="w-3 h-3" />
@@ -586,173 +631,248 @@ const CreativeChecker = () => {
                       </span>
                     )}
                   </div>
-                  {file.isFromZip && (
+                  {(file.isFromZip || file.displayName.includes('/')) && (
                     <p className="text-xs text-gray-500 mt-1">
-                      Extracted from {file.zipSource}
-                      {files.filter(f => f.zipSource === file.zipSource).length > 1 && 
-                        ` • ${files.filter(f => f.zipSource === file.zipSource).length} files total`
-                      }
+                      {file.isFromZip ? (
+                        <>
+                          Extracted from {file.zipSource}
+                          {files.filter(f => f.zipSource === file.zipSource).length > 1 && 
+                            ` • ${files.filter(f => f.zipSource === file.zipSource).length} files total`
+                          }
+                        </>
+                      ) : (
+                        file.displayName.includes('/') && file.displayName.substring(0, file.displayName.lastIndexOf('/'))
+                      )}
                     </p>
                   )}
                 </div>
               )}
             </div>
-            
-            {!isEditing && (
-              <button 
-                onClick={() => setIsEditing(true)} 
-                className="opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
-              >
-                <Edit2 className="w-4 h-4" />
-              </button>
-            )}
           </div>
           
-          <button 
-            onClick={() => removeFile(file.id)} 
-            className="opacity-0 group-hover:opacity-100 p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* File Details */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-gray-50 rounded-xl p-4">
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Dimensions</div>
-            <div className="text-lg font-bold text-gray-900 font-mono">{file.dimensions.width} × {file.dimensions.height}</div>
-          </div>
-          <div className="bg-gray-50 rounded-xl p-4">
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">File Size</div>
-            <div className="text-lg font-bold text-gray-900">{(file.size / 1024).toFixed(1)} KB</div>
-          </div>
-          <div className="bg-gray-50 rounded-xl p-4">
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Format</div>
-            <div className="text-lg font-bold text-gray-900">{file.analysis.format}</div>
-          </div>
-          <div className="bg-gray-50 rounded-xl p-4">
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Orientation</div>
-            <div className="text-lg font-bold text-gray-900 capitalize">{file.analysis.orientation}</div>
+          <div className="flex items-center space-x-2">
+            <button 
+              onClick={() => setIsEditing(true)} 
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
+            >
+              <Edit2 className="w-4 h-4" />
+            </button>
+            
+            <button 
+              onClick={() => setIsCollapsed(!isCollapsed)} 
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
+            >
+              {isCollapsed ? <Plus className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
+            </button>
+            
+            <button 
+              onClick={() => removeFile(file.id)} 
+              className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
-        {/* Tactic Mismatch Warning */}
-        {selectedTactic !== 'all' && !tacticCheck.matches && (
-          <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-xl">
-            <div className="flex items-start">
-              <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                <AlertCircle className="w-4 h-4 text-white" />
+        {/* Collapsible Content */}
+        {!isCollapsed && (
+          <div>
+            {/* File Details */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className={`rounded-xl p-4 ${
+                checkSpecRequirementMatch('dimensions') 
+                  ? 'bg-green-50 border-2 border-green-300' 
+                  : 'bg-gray-50'
+              }`}>
+                <div className={`text-xs font-medium uppercase tracking-wide mb-1 ${
+                  checkSpecRequirementMatch('dimensions') 
+                    ? 'text-green-700' 
+                    : 'text-gray-500'
+                }`}>
+                  Dimensions
+                  {checkSpecRequirementMatch('dimensions') && (
+                    <span className="ml-2 px-1 py-0.5 bg-green-600 text-white text-xs rounded">✓ MATCH</span>
+                  )}
+                </div>
+                <div className={`text-lg font-bold font-mono ${
+                  checkSpecRequirementMatch('dimensions') 
+                    ? 'text-green-900' 
+                    : 'text-gray-900'
+                }`}>
+                  {file.dimensions.width} × {file.dimensions.height}
+                </div>
               </div>
-              <div>
-                <h5 className="font-semibold text-red-800 mb-1">Tactic Mismatch</h5>
-                <p className="text-sm text-red-700">
-                  This creative does not match your selected tactic: <strong>{tacticCheck.tactic}</strong>
-                </p>
+              <div className={`rounded-xl p-4 ${
+                checkSpecRequirementMatch('fileSize') 
+                  ? 'bg-green-50 border-2 border-green-300' 
+                  : 'bg-gray-50'
+              }`}>
+                <div className={`text-xs font-medium uppercase tracking-wide mb-1 ${
+                  checkSpecRequirementMatch('fileSize') 
+                    ? 'text-green-700' 
+                    : 'text-gray-500'
+                }`}>
+                  File Size
+                  {checkSpecRequirementMatch('fileSize') && (
+                    <span className="ml-2 px-1 py-0.5 bg-green-600 text-white text-xs rounded">✓ MATCH</span>
+                  )}
+                </div>
+                <div className={`text-lg font-bold ${
+                  checkSpecRequirementMatch('fileSize') 
+                    ? 'text-green-900' 
+                    : 'text-gray-900'
+                }`}>
+                  {(file.size / 1024).toFixed(1)} KB
+                </div>
               </div>
+              <div className={`rounded-xl p-4 ${
+                checkSpecRequirementMatch('format') 
+                  ? 'bg-green-50 border-2 border-green-300' 
+                  : 'bg-gray-50'
+              }`}>
+                <div className={`text-xs font-medium uppercase tracking-wide mb-1 ${
+                  checkSpecRequirementMatch('format') 
+                    ? 'text-green-700' 
+                    : 'text-gray-500'
+                }`}>
+                  Format
+                  {checkSpecRequirementMatch('format') && (
+                    <span className="ml-2 px-1 py-0.5 bg-green-600 text-white text-xs rounded">✓ MATCH</span>
+                  )}
+                </div>
+                <div className={`text-lg font-bold ${
+                  checkSpecRequirementMatch('format') 
+                    ? 'text-green-900' 
+                    : 'text-gray-900'
+                }`}>
+                  {file.analysis.format}
+                </div>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-4">
+                <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Orientation</div>
+                <div className="text-lg font-bold text-gray-900 capitalize">{file.analysis.orientation}</div>
+              </div>
+            </div>
+
+            {/* Tactic Mismatch Warning */}
+            {selectedTactic !== 'all' && !tacticCheck.matches && (
+              <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-xl">
+                <div className="flex items-start">
+                  <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <AlertCircle className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <h5 className="font-semibold text-red-800 mb-1">Tactic Mismatch</h5>
+                    <p className="text-sm text-red-700">
+                      This creative does not match your selected tactic: <strong>{tacticCheck.tactic}</strong>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Spec Compliance */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-lg font-semibold text-gray-900">Specification Compliance</h4>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  file.specCheck.category === 'Custom' 
+                    ? 'bg-orange-100 text-orange-800' 
+                    : 'bg-blue-100 text-blue-800'
+                }`}>
+                  {file.specCheck.category}
+                </span>
+              </div>
+              
+              {file.specCheck.matches.length > 0 ? (
+                <div>
+                  <div className="mb-3">
+                    <span className="text-sm font-medium text-gray-600">Matches Found:</span>
+                  </div>
+                  <div className="space-y-2 mb-4">
+                    {file.specCheck.matches.map((match, idx) => {
+                      const isSelectedTactic = selectedTactic !== 'all' && (() => {
+                        const tacticMatchMap = {
+                          'ignite': ['Ignite Banner'],
+                          'amped': ['AMPed Banner'],
+                          'facebook': ['Facebook Social'],
+                          'instagram': ['Instagram Social'],
+                          'pinterest': ['Pinterest Social'],
+                          'linkedin': ['Linkedin Social'],
+                          'tiktok': ['Tiktok Social'],
+                          'snapchat': ['Snapchat Social'],
+                          'stv': ['STV Video'],
+                          'hulu': ['HULU Video'],
+                          'netflix': ['NETFLIX Video'],
+                          'liveSports': ['LIVESPORTS Video'],
+                          'spark-landscape': ['Spark Landscape'],
+                          'spark-square': ['Spark Square'],
+                          'spark-portrait': ['Spark Portrait'],
+                          'spark-video': ['Spark Video'],
+                          'contentSponsorship': ['AMPed contentSponsorship headerDesktop', 'AMPed contentSponsorship headerMobile', 'AMPed contentSponsorship footerLogo'],
+                          'listenLive': ['AMPed listenLive skin', 'AMPed listenLive banners', 'AMPed listenLive preRoll'],
+                          'mobileBillboard': ['AMPed mobileBillboard'],
+                          'takeover': ['AMPed takeover skin', 'AMPed takeover billboard']
+                        };
+                        const expectedMatches = tacticMatchMap[selectedTactic] || [];
+                        return expectedMatches.some(expectedMatch => 
+                          match.toLowerCase().includes(expectedMatch.toLowerCase()) ||
+                          expectedMatch.toLowerCase().includes(match.toLowerCase())
+                        );
+                      })();
+                      return (
+                        <div 
+                          key={idx} 
+                          className={`flex items-center p-3 rounded-xl border ${
+                            isSelectedTactic 
+                              ? 'bg-green-50 border-green-300' 
+                              : 'bg-gray-50 border-gray-200'
+                          }`}
+                        >
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${
+                            isSelectedTactic 
+                              ? 'bg-green-500' 
+                              : 'bg-gray-400'
+                          }`}>
+                            <Check className="w-4 h-4 text-white" />
+                          </div>
+                          <span className={`font-medium ${
+                            isSelectedTactic 
+                              ? 'text-green-800' 
+                              : 'text-gray-700'
+                          }`}>
+                            {match}
+                            {isSelectedTactic && (
+                              <span className="ml-2 px-2 py-0.5 bg-green-600 text-white text-xs rounded-full">TARGET MATCH</span>
+                            )}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center p-3 bg-orange-50 border border-orange-200 rounded-xl mb-4">
+                  <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center mr-3">
+                    <AlertCircle className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="font-medium text-orange-800">No standard specifications matched</span>
+                </div>
+              )}
+              
+              {file.specCheck.warnings.length > 0 && (
+                <div className="space-y-2">
+                  {file.specCheck.warnings.map((warning, idx) => (
+                    <div key={idx} className="flex items-start p-3 bg-yellow-50 border border-yellow-200 rounded-xl">
+                      <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 mr-3 flex-shrink-0" />
+                      <span className="text-sm text-yellow-800">{warning}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
-
-        {/* Spec Compliance */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="text-lg font-semibold text-gray-900">Specification Compliance</h4>
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-              file.specCheck.category === 'Custom' 
-                ? 'bg-orange-100 text-orange-800' 
-                : 'bg-blue-100 text-blue-800'
-            }`}>
-              {file.specCheck.category}
-            </span>
-          </div>
-          
-          {file.specCheck.matches.length > 0 ? (
-            <div>
-              <div className="mb-3">
-                <span className="text-sm font-medium text-gray-600">Matches Found:</span>
-              </div>
-              <div className="space-y-2 mb-4">
-                {file.specCheck.matches.map((match, idx) => {
-                  const isSelectedTactic = selectedTactic !== 'all' && (() => {
-                    const tacticMatchMap = {
-                      'ignite': ['Ignite Banner'],
-                      'amped': ['AMPed Banner'],
-                      'facebook': ['Facebook Social'],
-                      'instagram': ['Instagram Social'],
-                      'pinterest': ['Pinterest Social'],
-                      'linkedin': ['Linkedin Social'],
-                      'tiktok': ['Tiktok Social'],
-                      'snapchat': ['Snapchat Social'],
-                      'stv': ['STV Video'],
-                      'hulu': ['HULU Video'],
-                      'netflix': ['NETFLIX Video'],
-                      'liveSports': ['LIVESPORTS Video'],
-                      'spark-landscape': ['Spark Landscape'],
-                      'spark-square': ['Spark Square'],
-                      'spark-portrait': ['Spark Portrait'],
-                      'spark-video': ['Spark Video'],
-                      'contentSponsorship': ['AMPed contentSponsorship headerDesktop', 'AMPed contentSponsorship headerMobile', 'AMPed contentSponsorship footerLogo'],
-                      'listenLive': ['AMPed listenLive skin', 'AMPed listenLive banners', 'AMPed listenLive preRoll'],
-                      'mobileBillboard': ['AMPed mobileBillboard'],
-                      'takeover': ['AMPed takeover skin', 'AMPed takeover billboard']
-                    };
-                    const expectedMatches = tacticMatchMap[selectedTactic] || [];
-                    return expectedMatches.some(expectedMatch => 
-                      match.toLowerCase().includes(expectedMatch.toLowerCase()) ||
-                      expectedMatch.toLowerCase().includes(match.toLowerCase())
-                    );
-                  })();
-                  return (
-                    <div 
-                      key={idx} 
-                      className={`flex items-center p-3 rounded-xl border ${
-                        isSelectedTactic 
-                          ? 'bg-green-50 border-green-300' 
-                          : 'bg-gray-50 border-gray-200'
-                      }`}
-                    >
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${
-                        isSelectedTactic 
-                          ? 'bg-green-500' 
-                          : 'bg-gray-400'
-                      }`}>
-                        <Check className="w-4 h-4 text-white" />
-                      </div>
-                      <span className={`font-medium ${
-                        isSelectedTactic 
-                          ? 'text-green-800' 
-                          : 'text-gray-700'
-                      }`}>
-                        {match}
-                        {isSelectedTactic && (
-                          <span className="ml-2 px-2 py-0.5 bg-green-600 text-white text-xs rounded-full">TARGET MATCH</span>
-                        )}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center p-3 bg-orange-50 border border-orange-200 rounded-xl mb-4">
-              <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center mr-3">
-                <AlertCircle className="w-4 h-4 text-white" />
-              </div>
-              <span className="font-medium text-orange-800">No standard specifications matched</span>
-            </div>
-          )}
-          
-          {file.specCheck.warnings.length > 0 && (
-            <div className="space-y-2">
-              {file.specCheck.warnings.map((warning, idx) => (
-                <div key={idx} className="flex items-start p-3 bg-yellow-50 border border-yellow-200 rounded-xl">
-                  <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 mr-3 flex-shrink-0" />
-                  <span className="text-sm text-yellow-800">{warning}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
     );
   };
@@ -956,6 +1076,15 @@ const CreativeChecker = () => {
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              {files.length > 0 && (
+                <button 
+                  onClick={() => setFiles([])}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Clear All</span>
+                </button>
+              )}
               <div className="flex items-center space-x-2 text-sm text-gray-500">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                 <span>System Active</span>
@@ -968,7 +1097,7 @@ const CreativeChecker = () => {
       <div className="max-w-7xl mx-auto px-6 py-8">
 
         {/* Navigation Tabs */}
-        <div className="flex space-x-1 mb-8">
+        <div className="flex space-x-4 mb-8">
           {[
             { id: 'upload', label: 'Upload & Validate', icon: Upload, description: 'Upload and analyze creatives' },
             { id: 'settings', label: 'Spec Management', icon: Settings, description: 'Configure validation rules' }
@@ -976,7 +1105,7 @@ const CreativeChecker = () => {
             <button
               key={id}
               onClick={() => setActiveTab(id)}
-              className={`group relative px-6 py-4 rounded-2xl flex items-center space-x-3 transition-all duration-200 ${
+              className={`group relative px-4 py-3 rounded-2xl flex items-center space-x-3 transition-all duration-200 ${
                 activeTab === id 
                   ? 'bg-gradient-to-r from-[#cf0e0f] to-red-700 text-white shadow-lg shadow-red-500/25 scale-105' 
                   : 'bg-white/70 text-gray-600 hover:bg-white hover:shadow-md backdrop-blur-sm'
@@ -1082,14 +1211,13 @@ const CreativeChecker = () => {
                   
                   <p className="text-gray-600 mb-6 leading-relaxed">
                     Drop individual files or ZIP archives containing multiple creatives.
-                    <br />We support all major image and video formats.
                   </p>
                   
                   <div className="grid grid-cols-2 gap-4 mb-8 text-sm">
                     <div className="flex items-center justify-center space-x-2 p-3 bg-gray-50 rounded-xl">
                       <Image className="w-5 h-5 text-blue-600" />
                       <span className="font-medium">Images</span>
-                      <span className="text-xs text-gray-500">JPG, PNG, GIF, WebP</span>
+                      <span className="text-xs text-gray-500">JPG, PNG, GIF,<br />WebP</span>
                     </div>
                     <div className="flex items-center justify-center space-x-2 p-3 bg-gray-50 rounded-xl">
                       <Video className="w-5 h-5 text-purple-600" />

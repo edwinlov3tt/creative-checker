@@ -1,9 +1,36 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { 
-  Upload, FileText, Image, Video, Settings, Download, Check, AlertCircle, 
-  Trash2, Edit2, Save, Archive, Sparkles
+import {
+  Upload,
+  FileText,
+  Image,
+  Video,
+  Settings,
+  Download,
+  Check,
+  AlertCircle,
+  Trash2,
+  Edit2,
+  Save,
+  Archive,
+  Sparkles,
+  Facebook,
+  Instagram,
+  Linkedin,
+  Music,
+  Pin,
+  Ghost,
+  Smartphone
 } from 'lucide-react';
 import JSZip from 'jszip';
+
+const SOCIAL_ICONS = {
+  facebook: Facebook,
+  instagram: Instagram,
+  tiktok: Music,
+  linkedin: Linkedin,
+  pinterest: Pin,
+  snapchat: Ghost,
+};
 
 const CreativeChecker = () => {
   const [files, setFiles] = useState([]);
@@ -882,42 +909,39 @@ const CreativeChecker = () => {
 
           {activeCategory === 'social' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-              {Object.entries(editingSpecs.social).map(([platform, config]) => (
-                <div key={platform} className="glass rounded-2xl p-6">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-                      <span className="text-lg">
-                        {platform === 'facebook' ? '👤' : 
-                         platform === 'instagram' ? '📷' :
-                         platform === 'tiktok' ? '🎵' :
-                         platform === 'linkedin' ? '💼' :
-                         platform === 'pinterest' ? '📌' : '📱'}
-                      </span>
+              {Object.entries(editingSpecs.social).map(([platform, config]) => {
+                const Icon = SOCIAL_ICONS[platform] || Smartphone;
+                return (
+                  <div key={platform} className="glass rounded-2xl p-6">
+                    <div className="flex items-center space-x-3 mb-4">
+                      <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600">
+                        <Icon className="w-6 h-6" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 capitalize">{platform}</h3>
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 capitalize">{platform}</h3>
+                    <div className="space-y-4">
+                      <label className="block">
+                        <span className="text-sm font-medium text-gray-700 mb-2 block">Allowed Sizes</span>
+                        <textarea
+                          className="w-full p-3 border border-gray-300 rounded-xl text-sm font-mono bg-gray-50 focus:ring-2 focus:ring-[#cf0e0f] focus:border-transparent"
+                          rows={2}
+                          value={config.sizes.join(', ')}
+                          onChange={(e) => {
+                            const sizes = e.target.value.split(',').map(s => s.trim()).filter(s => s);
+                            setEditingSpecs(prev => ({
+                              ...prev,
+                              social: {
+                                ...prev.social,
+                                [platform]: { ...prev.social[platform], sizes }
+                              }
+                            }));
+                          }}
+                        />
+                      </label>
+                    </div>
                   </div>
-                  <div className="space-y-4">
-                    <label className="block">
-                      <span className="text-sm font-medium text-gray-700 mb-2 block">Allowed Sizes</span>
-                      <textarea
-                        className="w-full p-3 border border-gray-300 rounded-xl text-sm font-mono bg-gray-50 focus:ring-2 focus:ring-[#cf0e0f] focus:border-transparent"
-                        rows={2}
-                        value={config.sizes.join(', ')}
-                        onChange={(e) => {
-                          const sizes = e.target.value.split(',').map(s => s.trim()).filter(s => s);
-                          setEditingSpecs(prev => ({
-                            ...prev,
-                            social: {
-                              ...prev.social,
-                              [platform]: { ...prev.social[platform], sizes }
-                            }
-                          }));
-                        }}
-                      />
-                    </label>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
           

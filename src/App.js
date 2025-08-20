@@ -326,12 +326,13 @@ const CreativeChecker = () => {
             const dimensions = await getMediaDimensions(extractedFile);
             const analysis = analyzeCreative(extractedFile, dimensions);
             const specCheck = checkSpecs(extractedFile, dimensions);
-            
+
             processedFiles.push({
               id: Math.random().toString(36).substr(2, 9),
               originalName: extractedFile.name,
               displayName: extractedFile.name,
               file: extractedFile,
+              previewUrl: URL.createObjectURL(extractedFile),
               dimensions,
               size: extractedFile.size,
               type: extractedFile.type,
@@ -354,12 +355,13 @@ const CreativeChecker = () => {
           const dimensions = await getMediaDimensions(file);
           const analysis = analyzeCreative(file, dimensions);
           const specCheck = checkSpecs(file, dimensions);
-          
+
           processedFiles.push({
             id: Math.random().toString(36).substr(2, 9),
             originalName: file.name,
             displayName: file.name,
             file,
+            previewUrl: URL.createObjectURL(file),
             dimensions,
             size: file.size,
             type: file.type,
@@ -408,7 +410,13 @@ const CreativeChecker = () => {
 
   // Remove file
   const removeFile = (id) => {
-    setFiles(prev => prev.filter(file => file.id !== id));
+    setFiles(prev => {
+      const fileToRemove = prev.find(f => f.id === id);
+      if (fileToRemove?.previewUrl) {
+        URL.revokeObjectURL(fileToRemove.previewUrl);
+      }
+      return prev.filter(file => file.id !== id);
+    });
   };
 
   // Download results as JSON
@@ -614,6 +622,32 @@ const CreativeChecker = () => {
           >
             <Trash2 className="w-4 h-4" />
           </button>
+        </div>
+
+        {/* Preview */}
+        <div className="relative mb-6 w-full h-48 rounded-xl overflow-hidden bg-gray-100">
+          {file.type.startsWith('image/') ? (
+            <img
+              src={file.previewUrl}
+              alt={file.displayName}
+              loading="lazy"
+              className="w-full h-full object-contain"
+            />
+          ) : file.type.startsWith('video/') ? (
+            <video
+              src={file.previewUrl}
+              className="w-full h-full object-contain"
+              preload="metadata"
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-500 text-sm">
+              No preview available
+            </div>
+          )}
+          <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">
+            {file.dimensions.width} × {file.dimensions.height}
+          </div>
         </div>
 
         {/* File Details */}
